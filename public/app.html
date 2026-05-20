@@ -457,10 +457,10 @@ function renderBonuses(bonuses){
       '<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; Download</button>'+
       '</div>'+
       coverHtml+
-      '<div class="output-label">Description <button class="copy-btn" onclick="copyText('bdesc'+b.number+'',this)">Copy</button></div>'+
-      '<div class="output-box" id="bdesc'+b.number+'">'+esc(b.description)+'</div>'+
-      '<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText('bcont'+b.number+'',this)">Copy</button></div>'+
-      '<div class="output-box" id="bcont'+b.number+'">'+esc(b.full_content)+'</div>'+
+      '<div class="output-label">Description <button class="copy-btn" onclick="copyText(\''+descId+'\',this)">Copy</button></div>'+
+'<div class="output-box" id="'+descId+'">'+esc(b.description)+'</div>'+
+'<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\''+contId+'\',this)">Copy</button></div>'+
+'<div class="output-box" id="'+contId+'">'+esc(b.full_content)+'</div>'+
       '</div>';
   });
   // Add download all button at bottom
