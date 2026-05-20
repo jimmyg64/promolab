@@ -287,10 +287,12 @@ Generate exactly 3 bonuses. Keep full_content concise (150-200 words max each). 
       }
     }
 
-    // Generate cover images for each bonus
+    // Generate cover images for each bonus with timeout
+    const imgTimeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
     for (let i = 0; i < bonuses.length; i++) {
       try {
-        const imgResponse = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-v1-6/text-to-image', {
+        if (!process.env.STABILITY_API_KEY) { bonuses[i].cover_image = null; continue; }
+        const imgFetch = fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -298,18 +300,28 @@ Generate exactly 3 bonuses. Keep full_content concise (150-200 words max each). 
             'Accept': 'application/json'
           },
           body: JSON.stringify({
-            text_prompts: [{ text: bonuses[i].cover_prompt + ', professional book cover, high quality, sharp text, marketing material', weight: 1 }],
-            cfg_scale: 7, height: 1024, width: 1024, samples: 1, steps: 30
+            text_prompts: [
+              { text: bonuses[i].cover_prompt + ', professional digital product cover, clean typography, high contrast, marketing material, no people', weight: 1 },
+              { text: 'blurry, low quality, text errors, watermark', weight: -1 }
+            ],
+            cfg_scale: 7, height: 1024, width: 1024, samples: 1, steps: 25
           })
         });
-
+        const imgResponse = await Promise.race([imgFetch, imgTimeout(20000)]);
         if (imgResponse.ok) {
           const imgData = await imgResponse.json();
           if (imgData.artifacts && imgData.artifacts[0]) {
             bonuses[i].cover_image = 'data:image/png;base64,' + imgData.artifacts[0].base64;
-          }
+          } else { bonuses[i].cover_image = null; }
+        } else {
+          const errText = await imgResponse.text();
+          console.log('Stability API error:', imgResponse.status, errText);
+          bonuses[i].cover_image = null;
         }
-      } catch { bonuses[i].cover_image = null; }
+      } catch(imgErr) {
+        console.log('Image generation failed for bonus', i+1, imgErr.message);
+        bonuses[i].cover_image = null;
+      }
     }
 
     // Save to project if project_id provided
@@ -588,3 +600,50 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log('PromoLab v2 running on port ' + PORT));
+
+// ── DOWNLOAD BONUS AS HTML (printable/saveable) ───────────────
+app.post('/api/download/bonus', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { bonus, product_name } = req.body;
+  if (!bonus) return res.status(400).json({ success: false, message: 'Bonus data required' });
+
+  const coverImg = bonus.cover_image
+    ? `<img src="${bonus.cover_image}" style="width:200px;height:200px;border-radius:8px;margin-bottom:24px;display:block;margin-left:auto;margin-right:auto;">`
+    : `<div style="width:200px;height:200px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;text-align:center;padding:20px;">${bonus.title || 'Bonus'}</div>`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${bonus.title}</title>
+<style>
+  body{font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:48px 32px;color:#1A1A2E}
+  .header{text-align:center;margin-bottom:40px;border-bottom:3px solid #4F46B8;padding-bottom:32px}
+  .eyebrow{font-size:11px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:8px}
+  .bonus-label{display:inline-block;background:#4F46B8;color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px}
+  h1{font-size:26px;font-weight:700;color:#1A1A2E;margin:0 0 12px;line-height:1.3}
+  .description{font-size:14px;color:#555;line-height:1.6;margin-bottom:0}
+  .content{font-size:14px;line-height:1.9;color:#333;white-space:pre-wrap;margin-top:32px}
+  .footer{margin-top:48px;padding-top:20px;border-top:1px solid #EEEDFE;font-size:11px;color:#aaa;text-align:center}
+  @media print{body{padding:24px}}
+</style>
+</head>
+<body>
+<div class="header">
+${coverImg}
+<div class="eyebrow">Exclusive Buyer Bonus</div>
+<span class="bonus-label">Bonus #${bonus.number} &mdash; ${bonus.type}</span>
+<h1>${bonus.title}</h1>
+<p class="description">${bonus.description}</p>
+</div>
+<div class="content">${(bonus.full_content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+<div class="footer">Exclusive bonus for buyers of ${(product_name || 'this offer').replace(/</g,'&lt;')} &bull; PromoLab by Jimmy Griffith, JGAffiliate</div>
+</body>
+</html>`;
+
+  const filename = 'Bonus-' + (bonus.number || 1) + '-' + (bonus.title || 'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40) + '.html';
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+  res.send(html);
+});
