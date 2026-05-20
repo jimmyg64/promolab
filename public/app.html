@@ -447,16 +447,19 @@ function renderBonuses(bonuses){
   var html = '<div class="card solo">'+
     '<div class="section-label">Bonus stack <button class="regen-btn" onclick="buildBonuses()">Regenerate</button></div>';
   bonuses.forEach(function(b){
+    var coverHtml = b.cover_image
+      ? '<img src="'+b.cover_image+'" class="bonus-cover" alt="Bonus cover">'
+      : '<div style="width:160px;height:160px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;text-align:center;padding:12px;margin-bottom:10px;">'+esc(b.title)+'</div>';
     html += '<div class="bonus-card">'+
       '<div class="bonus-header">'+
       '<div class="bonus-num">'+b.number+'</div>'+
-      '<div><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>'+
+      '<div style="flex:1"><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>'+
+      '<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; Download</button>'+
       '</div>'+
-      (b.cover_image?'<img src="'+b.cover_image+'" class="bonus-cover" alt="Bonus cover">':
-        '<div class="bonus-cover-placeholder">Cover image generating...</div>')+
-      '<div class="output-label">Description <button class="copy-btn" onclick="copyText(\'bdesc'+b.number+'\',this)">Copy</button></div>'+
+      coverHtml+
+      '<div class="output-label">Description <button class="copy-btn" onclick="copyText('bdesc'+b.number+'',this)">Copy</button></div>'+
       '<div class="output-box" id="bdesc'+b.number+'">'+esc(b.description)+'</div>'+
-      '<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\'bcont'+b.number+'\',this)">Copy</button></div>'+
+      '<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText('bcont'+b.number+'',this)">Copy</button></div>'+
       '<div class="output-box" id="bcont'+b.number+'">'+esc(b.full_content)+'</div>'+
       '</div>';
   });
@@ -464,6 +467,28 @@ function renderBonuses(bonuses){
   document.getElementById('content-output-area').innerHTML = html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
 }
+
+async function downloadBonus(num){
+  var bonus = state.bonuses.find(function(b){ return b.number===num; });
+  if(!bonus){ alert('Bonus not found.'); return; }
+  try {
+    var res = await fetch('/api/download/bonus',{
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bonus, product_name:state.analysis?state.analysis.product_name:'this offer'})
+    });
+    if(res.ok){
+      var blob = await res.blob();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href=url;
+      a.download='Bonus-'+num+'-'+((bonus.title||'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40))+'.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    } else { alert('Download failed. Please try again.'); }
+  } catch(e){ alert('Download error: '+e.message); }
+}
+
 
 // ── Opt-in builder ────────────────────────────────────────────
 async function buildOptin(){
