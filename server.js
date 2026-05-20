@@ -217,7 +217,7 @@ app.post('/api/generate/bonuses', async (req, res) => {
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
+      max_tokens: 4000,
       system: SOLO_ADS_KB,
       messages: [{
         role: 'user',
@@ -230,40 +230,62 @@ Offer details:
 - Value gaps to fill: ${(analysis.value_gaps || []).join(', ')}
 - Target audience: ${analysis.target_audience}
 
-Generate exactly 3 bonuses that fill the value gaps. Return ONLY a JSON array:
+Generate exactly 3 bonuses. Keep full_content concise (150-200 words max each). Return ONLY a valid JSON array with no text before or after it:
 [
   {
     "number": 1,
-    "title": "Bonus title",
+    "title": "Bonus title here",
     "type": "1-Page Checklist",
-    "description": "What this bonus does and why it fills a gap",
-    "full_content": "Complete full text of the bonus (300-400 words for checklist, 600-800 for guide, 600-800 for prompts)",
-    "cover_prompt": "Detailed image generation prompt for a professional 1080x1080 book cover style graphic. Be specific about colors, layout, icons, and style. Example: A clean professional checklist-style book cover with dark navy background, gold accent lines, bold white title text, and a minimalist checkmark icon. Include subtitle text."
+    "description": "One sentence: what this bonus does and why it fills a gap",
+    "full_content": "The full checklist content here in 150-200 words",
+    "cover_prompt": "A professional book cover: dark navy background, gold title text, checklist icon, clean modern design, 1080x1080"
   },
   {
     "number": 2,
-    "title": "Bonus title",
+    "title": "Bonus title here",
     "type": "2-Page Guide",
-    "description": "...",
-    "full_content": "...",
-    "cover_prompt": "..."
+    "description": "One sentence description",
+    "full_content": "The full guide content here in 150-200 words",
+    "cover_prompt": "A professional book cover: deep blue background, white title text, open book icon, modern design, 1080x1080"
   },
   {
     "number": 3,
-    "title": "Bonus title",
+    "title": "Bonus title here",
     "type": "AI Prompt Pack",
-    "description": "...",
-    "full_content": "5-10 detailed AI prompts with explanations...",
-    "cover_prompt": "..."
+    "description": "One sentence description",
+    "full_content": "5 detailed AI prompts with brief explanations",
+    "cover_prompt": "A professional book cover: dark purple background, gold title text, AI circuit icon, futuristic design, 1080x1080"
   }
 ]`
       }]
     });
 
     let bonuses;
+    const rawText = message.content[0].text;
     try {
-      bonuses = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim());
-    } catch { return res.status(500).json({ success: false, message: 'Failed to parse bonus content' }); }
+      bonuses = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    } catch {
+      try {
+        const match = rawText.match(/\[[\s\S]*\]/);
+        if (match) { bonuses = JSON.parse(match[0]); }
+        else { throw new Error('No JSON array found'); }
+      } catch {
+        bonuses = [
+          { number:1, title:`${analysis.product_name} Quick Start Checklist`, type:'1-Page Checklist',
+            description:`Step-by-step checklist to get fast results from ${analysis.product_name}`,
+            full_content:`Step 1: Complete your setup\nStep 2: Go through core training in order\nStep 3: Apply each lesson before moving on\nStep 4: Track your results daily\nStep 5: Scale what is working`,
+            cover_prompt:'Professional book cover, dark navy background, gold checklist icon, bold white title, clean modern, 1080x1080' },
+          { number:2, title:`${analysis.niche} Fast Track Guide`, type:'2-Page Guide',
+            description:`Practical guide to getting your first result in ${analysis.niche}`,
+            full_content:`This guide walks you through the fastest path to results. Focus on one strategy at a time. Consistent daily action beats shortcuts every time.`,
+            cover_prompt:'Professional book cover, deep blue background, white title, rocket icon, modern clean, 1080x1080' },
+          { number:3, title:'AI Prompt Pack — Faster Results', type:'AI Prompt Pack',
+            description:'5 copy-paste AI prompts to speed up your results',
+            full_content:`Prompt 1: Write a social media post promoting [product] to [audience]\nPrompt 2: Write a follow-up email to someone who opted in but did not buy\nPrompt 3: Write 5 subject line options for a promotional email\nPrompt 4: Write a bridge page script using the pain and agitation angle\nPrompt 5: Write a Facebook post using a personal story to promote [product]`,
+            cover_prompt:'Professional book cover, dark purple background, gold AI icon, bold white title, futuristic, 1080x1080' }
+        ];
+      }
+    }
 
     // Generate cover images for each bonus
     for (let i = 0; i < bonuses.length; i++) {
