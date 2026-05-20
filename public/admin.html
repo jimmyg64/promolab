@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — PromoLab</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#F0F0F8;color:#1A1A2E;min-height:100vh;padding:24px 16px}
+.wrapper{max-width:680px;margin:0 auto}
+.topbar{background:#1A1A2E;border-radius:10px 10px 0 0;padding:16px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.brand-name{font-size:17px;font-weight:700}
+.back-link{font-size:12px;color:#AAAACC;text-decoration:none}
+.back-link:hover{color:#fff}
+.card{background:#fff;border-radius:0 0 10px 10px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:16px}
+.card.solo{border-radius:10px}
+.section-label{font-size:11px;font-weight:700;color:#4F46B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #EEEDFE}
+label{font-size:13px;color:#555;display:block;margin-bottom:4px;font-weight:700}
+input{width:100%;padding:10px 14px;border:1px solid #D0CFEE;border-radius:7px;font-size:13px;margin-bottom:14px;font-family:Arial,sans-serif}
+input:focus{outline:none;border-color:#4F46B8}
+.checkbox-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F8;font-size:13px}
+.checkbox-row:last-child{border-bottom:none}
+.checkbox-row input[type=checkbox]{width:auto;margin:0}
+.checkbox-label{flex:1}
+.checkbox-price{font-size:11px;color:#888}
+.primary-btn{background:#4F46B8;color:#fff;border:none;border-radius:8px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;width:100%}
+.primary-btn:hover{background:#3C3489}
+.alert{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:12px;font-weight:700;display:none}
+.alert-success{background:#EAF3DE;color:#1D6A3A}
+.alert-error{background:#FCEBEB;color:#7A1010}
+.user-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F0F0F8;font-size:13px;flex-wrap:wrap}
+.user-row:last-child{border-bottom:none}
+.user-email{flex:1;font-weight:700;font-size:12px}
+.access-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot-on{background:#1D9E75}
+.dot-off{background:#ddd}
+.access-label{font-size:10px;color:#888;margin-left:2px;margin-right:8px}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="topbar">
+    <div class="brand-name">PromoLab Admin</div>
+    <a href="/app.html" class="back-link">&larr; Back to app</a>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Grant or update user access</div>
+    <div id="grant-alert" class="alert"></div>
+    <label>User email address</label>
+    <input type="email" id="target-email" placeholder="user@example.com">
+    <div style="margin-bottom:14px">
+      <div class="checkbox-row">
+        <input type="checkbox" id="ch-facebook" checked>
+        <span class="checkbox-label">Facebook promo generator</span>
+        <span class="checkbox-price">Included with base ($27)</span>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="ch-solo">
+        <span class="checkbox-label">Solo ads funnel builder</span>
+        <span class="checkbox-price">Upgrade — $17</span>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="ch-email">
+        <span class="checkbox-label">Email sequence generator</span>
+        <span class="checkbox-price">Upgrade — $17</span>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="ch-launch">
+        <span class="checkbox-label">Launchjacking kit</span>
+        <span class="checkbox-price">Upgrade — $17</span>
+      </div>
+    </div>
+    <button class="primary-btn" onclick="grantAccess()">Save access &rarr;</button>
+  </div>
+
+  <div class="card solo" id="users-card">
+    <div class="section-label">All users & access</div>
+    <div id="users-list"><div style="color:#888;font-size:13px">Loading...</div></div>
+  </div>
+</div>
+
+<script>
+async function grantAccess(){
+  var email = document.getElementById('target-email').value.trim();
+  if(!email){ showAlert('grant-alert','Please enter a user email.','alert-error'); return; }
+
+  var payload = {
+    target_email: email,
+    facebook: document.getElementById('ch-facebook').checked,
+    solo_ads: document.getElementById('ch-solo').checked,
+    email_sequence: document.getElementById('ch-email').checked,
+    launchjacking: document.getElementById('ch-launch').checked
+  };
+
+  try{
+    var res = await fetch('/api/admin/access', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    var data = await res.json();
+    if(data.success){
+      showAlert('grant-alert','Access updated for '+email,'alert-success');
+      document.getElementById('target-email').value='';
+      loadUsers();
+    } else {
+      showAlert('grant-alert', data.message || 'Failed to update access.','alert-error');
+    }
+  } catch(e){ showAlert('grant-alert','Network error.','alert-error'); }
+}
+
+async function loadUsers(){
+  try{
+    var res = await fetch('/api/admin/users', {credentials:'include'});
+    var data = await res.json();
+    if(data.success){
+      document.getElementById('users-list').innerHTML = data.users.length === 0
+        ? '<div style="color:#888;font-size:13px">No users yet.</div>'
+        : data.users.map(function(u){
+          return '<div class="user-row">'+
+            '<div class="user-email">'+(u.email||u.user_id)+'</div>'+
+            dot(u.facebook,'Facebook')+
+            dot(u.solo_ads,'Solo ads')+
+            dot(u.email_sequence,'Email')+
+            dot(u.launchjacking,'Launch')+
+            '</div>';
+        }).join('');
+    }
+  } catch(e){}
+}
+
+function dot(on, label){
+  return '<span><span class="access-dot '+(on?'dot-on':'dot-off')+'"></span><span class="access-label">'+label+'</span></span>';
+}
+
+function showAlert(id, msg, cls){
+  var el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'alert '+cls;
+  el.style.display = 'block';
+}
+
+loadUsers();
+</script>
+</body>
+</html>

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromoLab</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#F0F0F8;color:#1A1A2E;min-height:100vh;padding:20px 16px}
+.wrapper{max-width:760px;margin:0 auto}
+.topbar{background:#1A1A2E;border-radius:10px 10px 0 0;padding:14px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.brand-eye{font-size:10px;color:#AAAACC;letter-spacing:0.06em;text-transform:uppercase}
+.brand-name{font-size:16px;font-weight:700}
+.brand-tag{font-size:11px;color:#7777AA;margin-top:1px}
+.user-row{display:flex;align-items:center;gap:10px;font-size:12px;color:#BBBBDD}
+.logout-btn{background:transparent;color:#fff;border:1px solid #4F46B8;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:700}
+.logout-btn:hover{background:#4F46B8}
+.card{background:#fff;padding:22px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:14px}
+.card.top{border-radius:0 0 0 0}
+.card.solo{border-radius:10px}
+.card.bottom{border-radius:0 0 10px 10px}
+.section-label{font-size:10px;font-weight:700;color:#4F46B8;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EEEDFE;display:flex;align-items:center;justify-content:space-between}
+label{font-size:13px;color:#555;display:block;margin-bottom:4px;font-weight:700}
+input,select,textarea{width:100%;padding:9px 13px;border:1px solid #D0CFEE;border-radius:7px;font-size:13px;margin-bottom:12px;font-family:Arial,sans-serif;color:#1A1A2E;background:#fff}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#4F46B8}
+textarea{resize:vertical;min-height:80px}
+.btn{background:#4F46B8;color:#fff;border:none;border-radius:7px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}
+.btn:hover{background:#3C3489}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.btn-outline{background:#fff;color:#4F46B8;border:1px solid #4F46B8}
+.btn-outline:hover{background:#EEEDFE}
+.btn-sm{padding:6px 12px;font-size:11px}
+.btn-full{width:100%}
+.btn-danger{background:#fff;color:#7A1010;border:1px solid #F09595}
+.btn-danger:hover{background:#FCEBEB}
+.alert{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:12px;font-weight:700}
+.alert-success{background:#EAF3DE;color:#1D6A3A}
+.alert-error{background:#FCEBEB;color:#7A1010}
+.alert-info{background:#E3F0FB;color:#0C447C}
+.alert-warning{background:#FFF3CD;color:#856404}
+.score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:14px}
+.score-card{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:10px;text-align:center}
+.score-val{font-size:20px;font-weight:700;color:#4F46B8}
+.score-label{font-size:10px;color:#888;margin-top:2px}
+.score-bar{height:4px;background:#EEEDFE;border-radius:2px;margin-top:6px;overflow:hidden}
+.score-fill{height:4px;background:#4F46B8;border-radius:2px}
+.channel-menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.channel-item{border:1px solid #EEEDFE;border-radius:8px;padding:14px;cursor:pointer;transition:all .15s;position:relative}
+.channel-item:hover:not(.locked){border-color:#C7C2EE;background:#FAFAFE}
+.channel-item.locked{opacity:0.65;cursor:default;background:#FAFAFA}
+.channel-item.selected{border:2px solid #4F46B8;background:#EEEDFE}
+.ch-icon{font-size:20px;margin-bottom:6px}
+.ch-name{font-size:13px;font-weight:700}
+.ch-desc{font-size:11px;color:#888;margin-top:2px}
+.lock-tag{position:absolute;top:8px;right:8px;background:#FFF3CD;color:#856404;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px}
+.unlock-link{display:block;font-size:11px;color:#4F46B8;font-weight:700;margin-top:6px;cursor:pointer;background:none;border:none;padding:0;text-align:left}
+.action-menu{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.action-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #EEEDFE;border-radius:8px;cursor:pointer;transition:all .15s}
+.action-item:hover{border-color:#C7C2EE;background:#FAFAFE}
+.action-item.done{border-color:#B7D5A0;background:#F4FAF0}
+.ai-icon{width:32px;height:32px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.action-item.done .ai-icon{background:#EAF3DE}
+.ai-name{font-size:13px;font-weight:700}
+.ai-desc{font-size:11px;color:#888;margin-top:1px}
+.ai-status{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px}
+.status-done{background:#EAF3DE;color:#1D6A3A}
+.status-ready{background:#EEEDFE;color:#3C3489}
+.status-needs{background:#FFF3CD;color:#856404}
+.dep-notice{background:#FFF3CD;border:1px solid #FAC775;border-radius:7px;padding:12px 14px;font-size:13px;color:#856404;margin-bottom:12px}
+.dep-notice strong{display:block;margin-bottom:4px}
+.dep-btns{display:flex;gap:8px;margin-top:8px}
+.output-section{margin-bottom:16px}
+.output-label{font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.output-box{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:#1A1A2E}
+.copy-btn{font-size:11px;padding:3px 10px;border-radius:5px;cursor:pointer;border:1px solid #D0CFEE;background:#fff;color:#555}
+.copy-btn:hover{background:#EEEDFE;color:#4F46B8}
+.bonus-card{border:1px solid #EEEDFE;border-radius:8px;padding:14px;margin-bottom:10px}
+.bonus-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bonus-num{width:28px;height:28px;border-radius:50%;background:#4F46B8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.bonus-title{font-size:14px;font-weight:700}
+.bonus-type{font-size:11px;color:#888}
+.bonus-cover{width:100%;max-width:200px;border-radius:6px;margin-bottom:10px;border:1px solid #EEEDFE}
+.bonus-cover-placeholder{width:200px;height:200px;background:#EEEDFE;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888;margin-bottom:10px}
+.ab-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.ab-card{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:12px}
+.ab-label{font-size:10px;font-weight:700;color:#4F46B8;text-transform:uppercase;margin-bottom:6px}
+.ab-text{font-size:13px;font-weight:700;line-height:1.4}
+.email-card{border:1px solid #EEEDFE;border-radius:8px;padding:14px;margin-bottom:10px}
+.email-day{font-size:11px;font-weight:700;color:#4F46B8;text-transform:uppercase;margin-bottom:8px}
+.subject-options{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.subject-opt{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:5px;padding:6px 10px;font-size:12px;display:flex;align-items:center;justify-content:space-between}
+.projects-list{display:flex;flex-direction:column;gap:8px}
+.project-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F8;cursor:pointer}
+.project-row:last-child{border-bottom:none}
+.project-row:hover .project-name{color:#4F46B8}
+.project-name{font-size:13px;font-weight:700;flex:1}
+.project-meta{font-size:11px;color:#888}
+.project-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:#EEEDFE;color:#3C3489}
+.angle-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#E3F0FB;color:#0C447C;margin-top:4px}
+.summary-box{background:#E3F0FB;border:1px solid #B3D4F0;border-radius:8px;padding:14px;font-size:13px;line-height:1.6;color:#0C447C;margin-bottom:14px}
+.loading-state{text-align:center;padding:32px;color:#888;font-size:13px}
+.loading-state .spin{display:inline-block;width:20px;height:20px;border:2px solid #EEEDFE;border-top-color:#4F46B8;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.divider{height:1px;background:#F0F0F8;margin:14px 0}
+.footer{text-align:center;font-size:11px;color:#999;margin-top:16px}
+.tabs{display:flex;gap:0;border-bottom:2px solid #EEEDFE;margin-bottom:16px}
+.tab{padding:8px 16px;font-size:13px;font-weight:700;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:#4F46B8;border-bottom-color:#4F46B8}
+.regen-btn{font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;border:1px solid #D0CFEE;background:#fff;color:#4F46B8;margin-left:8px}
+.regen-btn:hover{background:#EEEDFE}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<div class="topbar">
+  <div>
+    <div class="brand-eye">PromoLab</div>
+    <div class="brand-name">Promo content that converts</div>
+    <div class="brand-tag">Paste a URL. Get promo content. Start earning.</div>
+  </div>
+  <div class="user-row">
+    <span id="userEmail"></span>
+    <button class="logout-btn" id="logoutBtn">Log out</button>
+  </div>
+</div>
+
+<!-- Main tabs -->
+<div class="card top" style="border-radius:0;padding-bottom:0">
+  <div class="tabs">
+    <button class="tab active" onclick="showMainTab('workspace')">Workspace</button>
+    <button class="tab" onclick="showMainTab('projects')">My projects</button>
+  </div>
+</div>
+
+<!-- WORKSPACE TAB -->
+<div id="main-workspace">
+
+  <!-- Step 1: URL -->
+  <div class="card">
+    <div class="section-label">Step 1 — Analyze the offer</div>
+    <label>Sales page URL</label>
+    <input type="text" id="url-input" placeholder="https://example.com/sales-page">
+    <label>Your affiliate link (optional)</label>
+    <input type="text" id="affiliate-link" placeholder="https://yourlink.com/ref/username">
+    <div id="analyze-alert" style="display:none" class="alert"></div>
+    <button class="btn btn-full" id="analyze-btn" onclick="analyzeUrl()">Analyze this page &rarr;</button>
+  </div>
+
+  <!-- Offer summary + score -->
+  <div class="card" id="summary-card" style="display:none">
+    <div class="section-label">
+      Offer summary
+      <span id="overall-score-badge" style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;background:#EAF3DE;color:#1D6A3A"></span>
+    </div>
+    <div class="summary-box" id="summary-text"></div>
+    <div class="score-grid" id="score-grid"></div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px" id="score-notes"></div>
+    <div style="font-size:13px;color:#555;margin-bottom:4px"><strong>Recommended angle:</strong> <span id="rec-angle" class="angle-badge"></span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:0" id="angle-reason"></div>
+  </div>
+
+  <!-- Step 2: Channel -->
+  <div class="card" id="channel-card" style="display:none">
+    <div class="section-label">Step 2 — Choose your channel</div>
+    <div class="channel-menu" id="channel-menu"></div>
+  </div>
+
+  <!-- Step 3: Angle (shown after channel selected) -->
+  <div class="card" id="angle-card" style="display:none">
+    <div class="section-label">Step 3 — Confirm your angle</div>
+    <p style="font-size:13px;color:#555;margin-bottom:12px">This angle applies to everything you create in this project. Start a new project to try a different angle.</p>
+    <div id="angle-options" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+    <button class="btn btn-full" id="confirm-angle-btn" onclick="confirmAngle()">Confirm angle &amp; continue &rarr;</button>
+  </div>
+
+  <!-- Step 4: Creation menu -->
+  <div class="card" id="creation-card" style="display:none">
+    <div class="section-label">
+      Step 4 — What do you want to create?
+      <span id="active-angle-badge" class="angle-badge" style="font-size:10px"></span>
+    </div>
+    <div class="action-menu" id="action-menu"></div>
+  </div>
+
+  <!-- Content output area -->
+  <div id="content-output-area"></div>
+
+</div>
+
+<!-- PROJECTS TAB -->
+<div id="main-projects" style="display:none">
+  <div class="card solo">
+    <div class="section-label">My projects <span id="proj-count" style="font-weight:400;color:#888;font-size:11px"></span></div>
+    <div id="projects-container"><div class="loading-state"><div class="spin"></div><br>Loading projects...</div></div>
+  </div>
+</div>
+
+<p class="footer">&copy; 2026 PromoLab &bull; Jimmy Griffith, JGAffiliate</p>
+</div>
+
+<script>
+var state = {
+  user: null, access: {}, analysis: null, selectedChannel: null,
+  selectedAngle: null, projectId: null, bonuses: [], currentAction: null
+};
+
+var ANGLES = [
+  { key:'Consultative', label:'Consultative / Pathfinder', desc:'Best for overwhelmed audiences. Position offer as the logical clear path.' },
+  { key:'Pain & Agitation', label:'Pain & Agitation', desc:'Best for audiences using broken methods. Focus on frustration and instant relief.' },
+  { key:'Pure Value & Bonus', label:'Pure Value & Bonus', desc:'Best for competitive offers. Stack immense value and custom bonuses.' }
+];
+
+var CHANNELS = [
+  { key:'solo_ads', name:'Solo ads funnel', desc:'Full funnel — opt-in, bridge, emails', icon:'📧', accessKey:'solo_ads' },
+  { key:'facebook', name:'Facebook posts', desc:'3 ready-to-post promos', icon:'📱', accessKey:'facebook' },
+  { key:'email_sequence', name:'Email sequence only', desc:'Non-buyer or buyer sequence', icon:'✉️', accessKey:'email_sequence' },
+  { key:'launchjacking', name:'Launchjacking kit', desc:'Timed urgency promo posts', icon:'🚀', accessKey:'launchjacking' },
+  { key:'affiliate_launch_guide', name:'Affiliate Launch Guide', desc:'ALG-specific promo content', icon:'🎯', accessKey:'affiliate_launch_guide' }
+];
+
+var SOLO_ACTIONS = [
+  { key:'bonuses', name:'Build bonus stack', desc:'3 buyer-only bonuses with cover images', icon:'🎁', deps:[], provides:'bonuses' },
+  { key:'optin', name:'Opt-in page', desc:'Squeeze page with A/B headlines', icon:'📋', deps:[], provides:'optin' },
+  { key:'bridge', name:'Bridge page', desc:'VSL script or text copy', icon:'🌉', deps:['bonuses'], provides:'bridge' },
+  { key:'emails_non_buyers', name:'Email sequence — non-buyers', desc:'4-day convert to sale sequence', icon:'📨', deps:['bonuses'], provides:'emails_non_buyers' },
+  { key:'emails_buyers', name:'Email sequence — buyers', desc:'4-day onboard & ascend sequence', icon:'📬', deps:[], provides:'emails_buyers' },
+  { key:'full_funnel', name:'Full funnel', desc:'Build everything in the right order', icon:'⚡', deps:[], provides:'full' }
+];
+
+// ── Init ──────────────────────────────────────────────────────
+async function init(){
+  try {
+    var res = await fetch('/me', {credentials:'include'});
+    var data = await res.json();
+    if(!data.success || !data.user){ window.location.href='/login.html'; return; }
+    state.user = data.user;
+    state.access = data.access || {};
+    document.getElementById('userEmail').textContent = data.user.email;
+  } catch(e){ window.location.href='/login.html'; }
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async function(){
+  await fetch('/logout', {method:'POST', credentials:'include'});
+  window.location.href='/';
+});
+
+// ── Main tabs ─────────────────────────────────────────────────
+function showMainTab(tab){
+  document.getElementById('main-workspace').style.display = tab==='workspace'?'block':'none';
+  document.getElementById('main-projects').style.display = tab==='projects'?'block':'none';
+  document.querySelectorAll('.tab').forEach(function(t,i){
+    t.classList.toggle('active', ['workspace','projects'][i]===tab);
+  });
+  if(tab==='projects') loadProjects();
+}
+
+// ── Step 1: Analyze ───────────────────────────────────────────
+async function analyzeUrl(){
+  var url = document.getElementById('url-input').value.trim();
+  if(!url){ showAlert('analyze-alert','Please enter a sales page URL.','alert-error'); return; }
+  var btn = document.getElementById('analyze-btn');
+  btn.disabled=true; btn.textContent='Analyzing...';
+  try {
+    var res = await fetch('/api/analyze',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    var data = await res.json();
+    if(data.success){
+      state.analysis = data.analysis;
+      renderSummary(data.analysis);
+      document.getElementById('summary-card').style.display='block';
+      document.getElementById('channel-card').style.display='block';
+      renderChannels();
+      hideAlert('analyze-alert');
+    } else { showAlert('analyze-alert', data.message||'Analysis failed.','alert-error'); }
+  } catch(e){ showAlert('analyze-alert','Network error. Please try again.','alert-error'); }
+  btn.disabled=false; btn.textContent='Analyze this page \u2192';
+}
+
+function renderSummary(a){
+  document.getElementById('summary-text').textContent = a.summary || '';
+  var score = a.offer_score || {};
+  document.getElementById('overall-score-badge').textContent = 'Score: '+(score.overall||7)+'/10';
+  document.getElementById('score-notes').textContent = score.notes || '';
+  document.getElementById('rec-angle').textContent = a.recommended_angle || '';
+  document.getElementById('angle-reason').textContent = a.angle_reason || '';
+  var metrics = [
+    {label:'Commission',val:score.commission_rating||7},
+    {label:'Niche demand',val:score.niche_demand||7},
+    {label:'Conversion',val:score.conversion_potential||7},
+    {label:'Tier 1 fit',val:score.tier1_suitability||7}
+  ];
+  document.getElementById('score-grid').innerHTML = metrics.map(function(m){
+    return '<div class="score-card">'+
+      '<div class="score-val">'+m.val+'</div>'+
+      '<div class="score-label">'+m.label+'</div>'+
+      '<div class="score-bar"><div class="score-fill" style="width:'+(m.val*10)+'%"></div></div>'+
+      '</div>';
+  }).join('');
+}
+
+// ── Step 2: Channel ───────────────────────────────────────────
+function renderChannels(){
+  document.getElementById('channel-menu').innerHTML = CHANNELS.map(function(c){
+    var hasAccess = state.access[c.accessKey];
+    return '<div class="channel-item'+(hasAccess?'':' locked')+(state.selectedChannel===c.key?' selected':'')+'" '+
+      (hasAccess?'onclick="selectChannel(\''+c.key+'\')"':'')+'>'+
+      (hasAccess?'':'<span class="lock-tag">Upgrade $17</span>')+
+      '<div class="ch-icon">'+c.icon+'</div>'+
+      '<div class="ch-name">'+c.name+'</div>'+
+      '<div class="ch-desc">'+c.desc+'</div>'+
+      (hasAccess?'':'<button class="unlock-link" onclick="event.stopPropagation();showUpgrade(\''+c.name+'\')">Unlock this channel &rarr;</button>')+
+      '</div>';
+  }).join('');
+}
+
+function selectChannel(key){
+  state.selectedChannel = key;
+  renderChannels();
+  document.getElementById('angle-card').style.display='block';
+  renderAngles();
+  document.getElementById('creation-card').style.display='none';
+  document.getElementById('content-output-area').innerHTML='';
+  document.getElementById('angle-card').scrollIntoView({behavior:'smooth'});
+}
+
+function showUpgrade(name){
+  var area = document.getElementById('content-output-area');
+  area.innerHTML = '<div class="card solo"><div class="alert alert-warning">To unlock '+esc(name)+', please contact Jimmy to upgrade your account for $17.</div></div>';
+}
+
+// ── Step 3: Angle ─────────────────────────────────────────────
+function renderAngles(){
+  var rec = state.analysis && state.analysis.recommended_angle;
+  document.getElementById('angle-options').innerHTML = ANGLES.map(function(a){
+    var isRec = rec && rec.indexOf(a.key) !== -1;
+    return '<div style="border:1px solid '+(state.selectedAngle===a.key?'#4F46B8':'#EEEDFE')+';border-radius:8px;padding:12px;cursor:pointer;background:'+(state.selectedAngle===a.key?'#EEEDFE':'#fff')+'" onclick="pickAngle(\''+a.key+'\')">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
+      '<div style="font-size:13px;font-weight:700">'+a.label+'</div>'+
+      (isRec?'<span style="font-size:10px;background:#EAF3DE;color:#1D6A3A;padding:2px 7px;border-radius:4px;font-weight:700">Recommended</span>':'')+
+      '</div>'+
+      '<div style="font-size:12px;color:#888">'+a.desc+'</div>'+
+      '</div>';
+  }).join('');
+  if(rec && !state.selectedAngle){
+    var found = ANGLES.find(function(a){ return rec.indexOf(a.key)!==-1; });
+    if(found) pickAngle(found.key);
+  }
+}
+
+function pickAngle(key){
+  state.selectedAngle = key;
+  renderAngles();
+}
+
+async function confirmAngle(){
+  if(!state.selectedAngle){ alert('Please select an angle.'); return; }
+  var res = await fetch('/api/projects',{method:'POST',credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      name: state.analysis.product_name, url: document.getElementById('url-input').value.trim(),
+      analysis: state.analysis, angle: state.selectedAngle, channel: state.selectedChannel
+    })
+  });
+  var data = await res.json();
+  if(data.success){ state.projectId = data.project.id; }
+  document.getElementById('angle-card').style.display='none';
+  document.getElementById('creation-card').style.display='block';
+  document.getElementById('active-angle-badge').textContent = state.selectedAngle;
+  renderActionMenu();
+  document.getElementById('creation-card').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Step 4: Action menu ───────────────────────────────────────
+function renderActionMenu(){
+  var doneItems = state.bonuses.length>0?['bonuses']:[];
+  document.getElementById('action-menu').innerHTML = SOLO_ACTIONS.map(function(a){
+    var isDone = doneItems.indexOf(a.key)!==-1;
+    var needsDep = a.deps.length>0 && a.deps.some(function(d){ return doneItems.indexOf(d)===-1; });
+    return '<div class="action-item'+(isDone?' done':'')+'" onclick="handleAction(\''+a.key+'\')">'+
+      '<div class="ai-icon">'+a.icon+'</div>'+
+      '<div style="flex:1">'+
+      '<div class="ai-name">'+a.name+'</div>'+
+      '<div class="ai-desc">'+a.desc+'</div>'+
+      '</div>'+
+      '<span class="ai-status '+(isDone?'status-done':needsDep?'status-needs':'status-ready')+'">'+(isDone?'Done':needsDep?'Needs bonuses':'Ready')+'</span>'+
+      '</div>';
+  }).join('');
+}
+
+function handleAction(key){
+  state.currentAction = key;
+  var doneItems = state.bonuses.length>0?['bonuses']:[];
+  var action = SOLO_ACTIONS.find(function(a){ return a.key===key; });
+  var needsDep = action && action.deps.length>0 && action.deps.some(function(d){ return doneItems.indexOf(d)===-1; });
+
+  if(needsDep){
+    showDepNotice(key, action.deps);
+    return;
+  }
+
+  if(key==='bonuses') buildBonuses();
+  else if(key==='optin') buildOptin();
+  else if(key==='bridge') buildBridge();
+  else if(key==='emails_non_buyers') buildEmails('non_buyers');
+  else if(key==='emails_buyers') buildEmails('buyers');
+  else if(key==='full_funnel') buildFullFunnel();
+}
+
+function showDepNotice(key, deps){
+  var area = document.getElementById('content-output-area');
+  area.innerHTML = '<div class="card solo">'+
+    '<div class="dep-notice">'+
+    '<strong>Bonuses make this more powerful</strong>'+
+    'The '+deps.join(' and ')+' should be created first so they can be woven into this content. What would you like to do?'+
+    '<div class="dep-btns">'+
+    '<button class="btn btn-sm" onclick="buildBonuses()">Build bonuses first</button>'+
+    '<button class="btn btn-outline btn-sm" onclick="skipAndBuild(\''+key+'\')">Skip bonuses &amp; continue</button>'+
+    '</div>'+
+    '</div>'+
+    '</div>';
+  area.scrollIntoView({behavior:'smooth'});
+}
+
+function skipAndBuild(key){
+  if(key==='bridge') buildBridge();
+  else if(key==='emails_non_buyers') buildEmails('non_buyers');
+}
+
+// ── Bonus builder ─────────────────────────────────────────────
+async function buildBonuses(){
+  showLoading('Building your bonus stack with cover images... This takes about 30 seconds.');
+  try {
+    var res = await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, project_id:state.projectId})
+    });
+    var data = await res.json();
+    if(data.success){
+      state.bonuses = data.bonuses;
+      renderBonuses(data.bonuses);
+      renderActionMenu();
+    } else { showOutputError(data.message); }
+  } catch(e){ showOutputError('Network error. Please try again.'); }
+}
+
+function renderBonuses(bonuses){
+  var html = '<div class="card solo">'+
+    '<div class="section-label">Bonus stack <button class="regen-btn" onclick="buildBonuses()">Regenerate</button></div>';
+  bonuses.forEach(function(b){
+    html += '<div class="bonus-card">'+
+      '<div class="bonus-header">'+
+      '<div class="bonus-num">'+b.number+'</div>'+
+      '<div><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>'+
+      '</div>'+
+      (b.cover_image?'<img src="'+b.cover_image+'" class="bonus-cover" alt="Bonus cover">':
+        '<div class="bonus-cover-placeholder">Cover image generating...</div>')+
+      '<div class="output-label">Description <button class="copy-btn" onclick="copyText(\'bdesc'+b.number+'\',this)">Copy</button></div>'+
+      '<div class="output-box" id="bdesc'+b.number+'">'+esc(b.description)+'</div>'+
+      '<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\'bcont'+b.number+'\',this)">Copy</button></div>'+
+      '<div class="output-box" id="bcont'+b.number+'">'+esc(b.full_content)+'</div>'+
+      '</div>';
+  });
+  html += '</div>';
+  document.getElementById('content-output-area').innerHTML = html;
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Opt-in builder ────────────────────────────────────────────
+async function buildOptin(){
+  showLoading('Writing your opt-in page with A/B headline variations...');
+  try {
+    var res = await fetch('/api/generate/optin',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, project_id:state.projectId})
+    });
+    var data = await res.json();
+    if(data.success){ renderOptin(data.content); }
+    else { showOutputError(data.message); }
+  } catch(e){ showOutputError('Network error. Please try again.'); }
+}
+
+function renderOptin(c){
+  var html = '<div class="card solo">'+
+    '<div class="section-label">Opt-in page <button class="regen-btn" onclick="buildOptin()">Regenerate</button></div>'+
+    '<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note||'')+'</div>'+
+    '<div class="section-label" style="border:none;padding:0;margin-bottom:8px">A/B headline split test</div>'+
+    '<div class="ab-grid">'+
+    '<div class="ab-card"><div class="ab-label">Version A <button class="copy-btn" onclick="copyText(\'ha\',this)">Copy</button></div><div class="ab-text" id="ha">'+esc(c.headline_a)+'</div></div>'+
+    '<div class="ab-card"><div class="ab-label">Version B <button class="copy-btn" onclick="copyText(\'hb\',this)">Copy</button></div><div class="ab-text" id="hb">'+esc(c.headline_b)+'</div></div>'+
+    '</div>'+
+    '<div class="output-label">Subheadline <button class="copy-btn" onclick="copyText(\'osub\',this)">Copy</button></div>'+
+    '<div class="output-box" id="osub">'+esc(c.subheadline)+'</div>'+
+    '<div class="output-label" style="margin-top:8px">CTA button text</div>'+
+    '<div class="output-box">'+esc(c.cta_button)+'</div>'+
+    '<div class="output-label" style="margin-top:8px">Form fields</div>'+
+    '<div class="output-box">'+esc((c.form_fields||[]).join(' + '))+'</div>'+
+    (c.split_test_tip?'<div class="alert alert-warning" style="margin-top:12px"><strong>Split test tip:</strong> '+esc(c.split_test_tip)+'</div>':'')+
+    '</div>';
+  document.getElementById('content-output-area').innerHTML = html;
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Bridge builder ────────────────────────────────────────────
+function buildBridge(){
+  var html = '<div class="card solo">'+
+    '<div class="section-label">Bridge page format</div>'+
+    '<p style="font-size:13px;color:#555;margin-bottom:12px">Choose the format for your bridge page:</p>'+
+    '<div style="display:flex;flex-direction:column;gap:8px">'+
+    '<div style="border:1px solid #EEEDFE;border-radius:8px;padding:12px;cursor:pointer" onclick="buildBridgeFormat(\'text\')">'+
+    '<div style="font-size:13px;font-weight:700">Text-only copy</div>'+
+    '<div style="font-size:12px;color:#888">Headline + story + bullets + bonus pitch + CTA</div></div>'+
+    '<div style="border:1px solid #EEEDFE;border-radius:8px;padding:12px;cursor:pointer" onclick="buildBridgeFormat(\'vsl\')">'+
+    '<div style="font-size:13px;font-weight:700">VSL video script + text copy</div>'+
+    '<div style="font-size:12px;color:#888">2-3 minute script + supporting text</div></div>'+
+    '<div style="border:1px solid #EEEDFE;border-radius:8px;padding:12px;cursor:pointer" onclick="buildBridgeFormat(\'short\')">'+
+    '<div style="font-size:13px;font-weight:700">Short punchy intro</div>'+
+    '<div style="font-size:12px;color:#888">3-5 sentences + strong CTA button</div></div>'+
+    '</div>'+
+    '</div>';
+  document.getElementById('content-output-area').innerHTML = html;
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+async function buildBridgeFormat(format){
+  showLoading('Writing your bridge page...');
+  try {
+    var res = await fetch('/api/generate/bridge',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, format, bonuses:state.bonuses, project_id:state.projectId})
+    });
+    var data = await res.json();
+    if(data.success){ renderBridge(data.content, format); }
+    else { showOutputError(data.message); }
+  } catch(e){ showOutputError('Network error. Please try again.'); }
+}
+
+function renderBridge(c, format){
+  var html = '<div class="card solo">'+
+    '<div class="section-label">Bridge page — '+format+' <button class="regen-btn" onclick="buildBridge()">Change format</button></div>'+
+    (c.above_fold_note?'<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note)+'</div>':'')+
+    '<div class="output-label">Headline <button class="copy-btn" onclick="copyText(\'bh\',this)">Copy</button></div>'+
+    '<div class="output-box" id="bh">'+esc(c.headline)+'</div>'+
+    '<div class="output-label" style="margin-top:8px">Content <button class="copy-btn" onclick="copyText(\'bc\',this)">Copy</button></div>'+
+    '<div class="output-box" id="bc">'+esc(c.content)+'</div>'+
+    '<div class="output-label" style="margin-top:8px">CTA button</div>'+
+    '<div class="output-box">'+esc(c.cta_text)+'</div>'+
+    '</div>';
+  document.getElementById('content-output-area').innerHTML = html;
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Email builder ─────────────────────────────────────────────
+async function buildEmails(type){
+  showLoading('Writing your '+(type==='non_buyers'?'non-buyer':'buyer')+' email sequence with 3 subject line options per email...');
+  try {
+    var res = await fetch('/api/generate/emails',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, sequence_type:type, bonuses:state.bonuses, project_id:state.projectId})
+    });
+    var data = await res.json();
+    if(data.success){ renderEmails(data.emails, type); }
+    else { showOutputError(data.message); }
+  } catch(e){ showOutputError('Network error. Please try again.'); }
+}
+
+function renderEmails(emails, type){
+  var title = type==='non_buyers'?'Non-buyer sequence — convert to sale':'Buyer sequence — onboard & ascend';
+  var html = '<div class="card solo">'+
+    '<div class="section-label">'+title+' <button class="regen-btn" onclick="buildEmails(\''+type+'\')">Regenerate</button></div>';
+  emails.forEach(function(e){
+    html += '<div class="email-card">'+
+      '<div class="email-day">Day '+e.day+'</div>'+
+      '<div class="output-label">Subject line options (pick one)</div>'+
+      '<div class="subject-options">'+
+      (e.subject_lines||[]).map(function(s,i){
+        var sid='sub'+e.day+'_'+i;
+        return '<div class="subject-opt"><span id="'+sid+'">'+esc(s)+'</span>'+
+          '<button class="copy-btn" onclick="copyText(\''+sid+'\',this)">Copy</button></div>';
+      }).join('')+
+      '</div>'+
+      '<div class="output-label">Email body <button class="copy-btn" onclick="copyText(\'eb'+e.day+'\',this)">Copy</button></div>'+
+      '<div class="output-box" id="eb'+e.day+'">'+esc(e.body)+'</div>'+
+      '</div>';
+  });
+  html += '</div>';
+  document.getElementById('content-output-area').innerHTML = html;
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Full funnel ───────────────────────────────────────────────
+async function buildFullFunnel(){
+  showLoading('Building your complete funnel — bonuses, opt-in, bridge, and both email sequences...');
+  try {
+    var bonusRes = await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})});
+    var bonusData = await bonusRes.json();
+    if(bonusData.success) state.bonuses = bonusData.bonuses;
+
+    var optinRes = await fetch('/api/generate/optin',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})});
+    var optinData = await optinRes.json();
+
+    var bridgeRes = await fetch('/api/generate/bridge',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,format:'text',bonuses:state.bonuses,project_id:state.projectId})});
+    var bridgeData = await bridgeRes.json();
+
+    var nbRes = await fetch('/api/generate/emails',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,sequence_type:'non_buyers',bonuses:state.bonuses,project_id:state.projectId})});
+    var nbData = await nbRes.json();
+
+    var bRes = await fetch('/api/generate/emails',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,sequence_type:'buyers',bonuses:state.bonuses,project_id:state.projectId})});
+    var bData = await bRes.json();
+
+    var area = document.getElementById('content-output-area');
+    area.innerHTML = '<div class="alert alert-success card solo">Full funnel built! Scroll down to see each section.</div>';
+    if(bonusData.success) renderBonuses(bonusData.bonuses);
+    if(optinData.success){
+      var d=document.createElement('div'); d.innerHTML=''; area.appendChild(d);
+      var old=document.getElementById('content-output-area');
+      document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getOptinHtml(optinData.content));
+    }
+    if(bridgeData.success) document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getBridgeHtml(bridgeData.content,'text'));
+    if(nbData.success) document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getEmailsHtml(nbData.emails,'non_buyers'));
+    if(bData.success) document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getEmailsHtml(bData.emails,'buyers'));
+    renderActionMenu();
+    area.scrollIntoView({behavior:'smooth'});
+  } catch(e){ showOutputError('Network error. Please try again.'); }
+}
+
+function getOptinHtml(c){
+  return '<div class="card solo" style="margin-top:14px">'+
+    '<div class="section-label">Opt-in page</div>'+
+    '<div class="ab-grid">'+
+    '<div class="ab-card"><div class="ab-label">Version A</div><div class="ab-text">'+esc(c.headline_a)+'</div></div>'+
+    '<div class="ab-card"><div class="ab-label">Version B</div><div class="ab-text">'+esc(c.headline_b)+'</div></div>'+
+    '</div>'+
+    '<div class="output-box">'+esc(c.subheadline)+'</div>'+
+    '</div>';
+}
+
+function getBridgeHtml(c,format){
+  return '<div class="card solo" style="margin-top:14px">'+
+    '<div class="section-label">Bridge page</div>'+
+    '<div class="output-box">'+esc(c.headline)+'\n\n'+esc(c.content)+'</div>'+
+    '</div>';
+}
+
+function getEmailsHtml(emails,type){
+  return '<div class="card solo" style="margin-top:14px">'+
+    '<div class="section-label">'+(type==='non_buyers'?'Non-buyer sequence':'Buyer sequence')+'</div>'+
+    emails.map(function(e){
+      return '<div class="email-card">'+
+        '<div class="email-day">Day '+e.day+'</div>'+
+        '<div style="font-size:12px;color:#888;margin-bottom:6px">Subject: '+esc((e.subject_lines||[])[0]||'')+'</div>'+
+        '<div class="output-box">'+esc(e.body)+'</div>'+
+        '</div>';
+    }).join('')+'</div>';
+}
+
+// ── Projects ──────────────────────────────────────────────────
+async function loadProjects(){
+  document.getElementById('projects-container').innerHTML='<div class="loading-state"><div class="spin"></div><br>Loading...</div>';
+  var res = await fetch('/api/projects',{credentials:'include'});
+  var data = await res.json();
+  if(!data.success||data.projects.length===0){
+    document.getElementById('proj-count').textContent='';
+    document.getElementById('projects-container').innerHTML='<div style="color:#888;font-size:13px;padding:16px 0">No projects yet. Analyze a URL to start your first one.</div>';
+    return;
+  }
+  document.getElementById('proj-count').textContent=data.projects.length+' project'+(data.projects.length===1?'':'s');
+  document.getElementById('projects-container').innerHTML='<div class="projects-list">'+
+    data.projects.map(function(p){
+      return '<div class="project-row" onclick="loadProject(\''+p.id+'\')">'+
+        '<div style="flex:1">'+
+        '<div class="project-name">'+esc(p.name)+'</div>'+
+        '<div class="project-meta">'+esc(p.channel.replace('_',' '))+' &bull; '+new Date(p.created_at).toLocaleDateString()+'</div>'+
+        '<div style="margin-top:3px"><span class="project-badge">'+esc(p.angle||'')+'</span></div>'+
+        '</div>'+
+        '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();deleteProject(\''+p.id+'\')">Delete</button>'+
+        '</div>';
+    }).join('')+
+    '</div>';
+}
+
+async function loadProject(id){
+  showMainTab('workspace');
+  var res = await fetch('/api/projects/'+id,{credentials:'include'});
+  var data = await res.json();
+  if(!data.success) return;
+  var p = data.project;
+  state.analysis = JSON.parse(p.analysis||'{}');
+  state.selectedAngle = p.angle;
+  state.selectedChannel = p.channel;
+  state.projectId = p.id;
+  state.bonuses = (data.content.bonus_stack)||[];
+  document.getElementById('url-input').value = p.url||'';
+  renderSummary(state.analysis);
+  document.getElementById('summary-card').style.display='block';
+  document.getElementById('channel-card').style.display='block';
+  renderChannels();
+  document.getElementById('angle-card').style.display='none';
+  document.getElementById('creation-card').style.display='block';
+  document.getElementById('active-angle-badge').textContent = state.selectedAngle;
+  renderActionMenu();
+  document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-success">Project loaded. Choose what to create from the menu above.</div></div>';
+}
+
+async function deleteProject(id){
+  if(!confirm('Delete this project?')) return;
+  await fetch('/api/projects/'+id,{method:'DELETE',credentials:'include'});
+  loadProjects();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function showLoading(msg){
+  document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="loading-state"><div class="spin"></div><br>'+esc(msg||'Generating...')+'</div></div>';
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+function showOutputError(msg){
+  document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-error">'+esc(msg||'Something went wrong. Please try again.')+'</div></div>';
+}
+
+function showAlert(id,msg,cls){
+  var el=document.getElementById(id);
+  el.textContent=msg; el.className='alert '+cls; el.style.display='block';
+}
+
+function hideAlert(id){ document.getElementById(id).style.display='none'; }
+
+function copyText(id,btn){
+  var el=document.getElementById(id);
+  if(!el) return;
+  navigator.clipboard.writeText(el.textContent).then(function(){
+    btn.textContent='Copied!';
+    setTimeout(function(){ btn.textContent='Copy'; },1500);
+  });
+}
+
+function esc(s){
+  if(!s) return '';
+  var d=document.createElement('div'); d.textContent=s; return d.innerHTML;
+}
+
+init();
+</script>
+</body>
+</html>
