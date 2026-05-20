@@ -463,9 +463,43 @@ function renderBonuses(bonuses){
       '<div class="output-box" id="bcont'+b.number+'">'+esc(b.full_content)+'</div>'+
       '</div>';
   });
+  // Add download all button at bottom
+  html += '<div style="display:flex;gap:8px;margin-top:4px">'+
+    '<button class="btn btn-full" onclick="downloadAllBonuses()">&#8595; Download all 3 bonuses</button>'+
+    '</div>';
   html += '</div>';
   document.getElementById('content-output-area').innerHTML = html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+async function downloadAllBonuses(){
+  if(!state.bonuses||!state.bonuses.length){ alert('No bonuses to download.'); return; }
+  var btn = event.target;
+  btn.disabled=true; btn.textContent='Preparing download...';
+  try {
+    var res = await fetch('/api/download/bonuses-all',{
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bonuses:state.bonuses, product_name:state.analysis?state.analysis.product_name:'your offer'})
+    });
+    if(res.ok){
+      var blob = await res.blob();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href=url;
+      a.download='Complete-Bonus-Stack.html';
+      a.click();
+      URL.revokeObjectURL(url);
+      btn.textContent='Downloaded!';
+      setTimeout(function(){ btn.disabled=false; btn.textContent='↓ Download all 3 bonuses'; },2000);
+    } else {
+      alert('Download failed. Please try again.');
+      btn.disabled=false; btn.textContent='↓ Download all 3 bonuses';
+    }
+  } catch(e){
+    alert('Download error: '+e.message);
+    btn.disabled=false; btn.textContent='↓ Download all 3 bonuses';
+  }
 }
 
 async function downloadBonus(num){
