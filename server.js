@@ -599,6 +599,74 @@ app.get('/api/admin/users', async (req, res) => {
   res.json({ success: true, users: data || [] });
 });
 
+
+// ── DOWNLOAD ALL BONUSES AS ZIP ───────────────────────────────
+app.post('/api/download/bonuses-all', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { bonuses, product_name } = req.body;
+  if (!bonuses || !bonuses.length) return res.status(400).json({ success: false, message: 'Bonuses required' });
+
+  // Build one combined HTML document with all 3 bonuses
+  let allBonusesHtml = '';
+  bonuses.forEach(function(bonus) {
+    const coverImg = bonus.cover_image
+      ? `<img src="${bonus.cover_image}" style="width:200px;height:200px;border-radius:8px;margin:0 auto 24px;display:block;">`
+      : `<div style="width:200px;height:200px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;text-align:center;padding:20px;">${bonus.title || 'Bonus'}</div>`;
+
+    allBonusesHtml += `
+    <div class="bonus-section">
+      <div class="bonus-header">
+        ${coverImg}
+        <div class="eyebrow">Exclusive Buyer Bonus #${bonus.number}</div>
+        <span class="bonus-label">${bonus.type}</span>
+        <h2>${bonus.title}</h2>
+        <p class="description">${bonus.description}</p>
+      </div>
+      <div class="content">${(bonus.full_content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>
+    <div class="page-break"></div>`;
+  });
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Bonus Stack — ${(product_name || 'Your Offer').replace(/</g,'&lt;')}</title>
+<style>
+  body{font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:48px 32px;color:#1A1A2E}
+  .cover-page{text-align:center;padding:80px 40px;border-bottom:3px solid #4F46B8;margin-bottom:60px}
+  .cover-page h1{font-size:32px;font-weight:700;color:#1A1A2E;margin:0 0 12px}
+  .cover-page p{font-size:15px;color:#555}
+  .bonus-section{margin-bottom:60px}
+  .bonus-header{text-align:center;margin-bottom:32px;padding-bottom:28px;border-bottom:2px solid #EEEDFE}
+  .eyebrow{font-size:11px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:8px}
+  .bonus-label{display:inline-block;background:#4F46B8;color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px}
+  h2{font-size:24px;font-weight:700;color:#1A1A2E;margin:0 0 12px;line-height:1.3}
+  .description{font-size:14px;color:#555;line-height:1.6;margin:0}
+  .content{font-size:14px;line-height:1.9;color:#333;white-space:pre-wrap}
+  .page-break{page-break-after:always;border-bottom:1px solid #EEEDFE;margin:40px 0}
+  .footer{margin-top:48px;padding-top:20px;border-top:1px solid #EEEDFE;font-size:11px;color:#aaa;text-align:center}
+  @media print{.page-break{page-break-after:always}.cover-page{page-break-after:always}}
+</style>
+</head>
+<body>
+  <div class="cover-page">
+    <div class="eyebrow">Exclusive Buyer Bonus Package</div>
+    <h1>${(product_name || 'Your Offer').replace(/</g,'&lt;')}</h1>
+    <p>Thank you for your purchase. Here are your ${bonuses.length} exclusive bonuses.</p>
+  </div>
+  ${allBonusesHtml}
+  <div class="footer">Exclusive bonus package &bull; PromoLab by Jimmy Griffith, JGAffiliate</div>
+</body>
+</html>`;
+
+  const filename = 'Complete-Bonus-Stack-' + (product_name || 'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30) + '.html';
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+  res.send(html);
+});
+
 app.listen(PORT, () => console.log('PromoLab v2 running on port ' + PORT));
 
 // ── DOWNLOAD BONUS AS HTML (printable/saveable) ───────────────
