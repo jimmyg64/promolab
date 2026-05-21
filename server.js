@@ -181,7 +181,11 @@ function parseContentToDocx(content, productName, title, subtitle, type) {
     else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
       children.push(makeParagraph(trimmed.slice(2, -2), { bold: true, size: 26, spaceBefore: 160, spaceAfter: 80 }));
     }
-    else { children.push(makeParagraph(trimmed, { spaceBefore: 80, spaceAfter: 80 })); }
+    else {
+      // Strip any remaining inline markdown: **bold**, *italic*, `code`
+      let clean = trimmed.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`([^`]+)`/g, '$1');
+      children.push(makeParagraph(clean, { spaceBefore: 80, spaceAfter: 80 }));
+    }
   }
 
   children.push(makeDivider());
@@ -337,7 +341,7 @@ Return ONLY valid JSON:
 {
   "title": "Compelling benefit-driven title with specifics",
   "subtitle": "Supporting subtitle that expands the promise",
-  "cover_prompt": "Hyper-detailed DALL-E 3 prompt for a premium 3D ebook cover: Show a photorealistic 3D hardcover book standing upright on a reflective dark surface. The book has a deep navy blue cover with gold foil title text reading exactly the book title. The spine shows the author name. Professional studio lighting with subtle shadows. The cover design includes a relevant icon or graphic element. Ultra high quality render, 8K, professional product photography style. No people, no faces.",
+  "cover_prompt": "Create a photorealistic 3D digital product mockup: a premium hardcover book standing upright on a dark reflective marble surface. The book cover is deep navy blue with gold foil embossed title text. A large relevant gold icon in the center of the cover (related to the topic). Thick book with visible golden page edges on the side. Professional studio lighting from upper right, casting realistic shadows. The cover has an elegant gold border frame. Ultra realistic product photography, bokeh background, 8K quality, atmospheric dark studio setting. No people, no hands.",
   "full_content": "Complete 1500-2000 word lead magnet with proper markdown formatting — real headers, numbered steps, bullet points, examples. Write every word. No placeholders."
 }` }]
     });
@@ -394,7 +398,7 @@ Return ONLY valid JSON array — no text before or after:
     "tagline": "One sentence that sells the bonus",
     "description": "Two sentences: what it is and what specific problem it solves",
     "full_content": "400-600 words of real checklist content. Numbered action steps organized by phase. Every step is specific and actionable.",
-    "cover_prompt": "Hyper-detailed DALL-E 3 prompt: Photorealistic 3D checklist pad or clipboard product mockup. Dark navy blue cover, gold checklist checkmark icon, bold white title text. Professional studio product photography, soft dramatic lighting, reflective surface. Premium quality render 8K. No people."
+    "cover_prompt": "Create a photorealistic 3D digital product mockup: a hardcover book standing upright on a dark reflective surface. The book cover is deep navy blue with a large gold checkmark icon in the center. Bold white sans-serif title text at the top. Subtle gold border frame around the cover. Studio lighting from upper left casting a soft shadow to the right. The book has visible pages/spine on the right side. Ultra realistic product photography style, 8K quality, dark background with subtle gradient. No people, no hands, no text other than the title area."
   },
   {
     "number": 2,
@@ -403,7 +407,7 @@ Return ONLY valid JSON array — no text before or after:
     "tagline": "One sentence that sells the bonus",
     "description": "Two sentences description",
     "full_content": "400-600 words of real guide content with headers, explanation, examples, steps.",
-    "cover_prompt": "Hyper-detailed DALL-E 3 prompt: Photorealistic 3D softcover guide or report mockup standing at slight angle. Deep royal blue and white design, clean modern typography, relevant icon for the topic. Professional product photography lighting, dark background with light rays. Ultra high quality 8K render. No people."
+    "cover_prompt": "Create a photorealistic 3D digital product mockup: a softcover guide or report lying at a slight angle on a dark reflective surface. The cover is deep royal blue with a white geometric arrow or map pin icon in the center. Clean modern sans-serif title text in white. A thin white border and subtle texture on the cover. Dramatic studio lighting from above, soft glow around the product. Visible pages fanning out slightly from the bottom. Ultra realistic product photography, 8K quality, gradient dark background. No people, no hands."
   },
   {
     "number": 3,
@@ -412,7 +416,7 @@ Return ONLY valid JSON array — no text before or after:
     "tagline": "One sentence that sells the bonus",
     "description": "Two sentences description",
     "full_content": "8-10 complete prompts. Each has: PROMPT TITLE in caps, full copy-paste prompt text, brief usage note.",
-    "cover_prompt": "Hyper-detailed DALL-E 3 prompt: Photorealistic 3D digital tablet or sleek ebook mockup. Dark purple and electric gold design, futuristic AI circuit pattern, bold modern font. Professional product photography, dramatic studio lighting, dark reflective surface. Ultra high quality 8K. No people."
+    "cover_prompt": "Create a photorealistic 3D digital product mockup: a sleek hardcover book on a dark reflective surface. The cover is dark purple with electric gold AI circuit/neural network pattern as background texture. A glowing gold lightning bolt or brain icon in the center. Bold white futuristic title text. Dramatic studio lighting with purple and gold light accents. The book casts a sharp reflection on the surface below. Premium product photography style, 8K quality, very dark atmospheric background. No people, no hands."
   }
 ]` }]
     });
@@ -452,7 +456,8 @@ Return only the plain copy text. No JSON.` }]
     const stackSummary = summaryMsg.content[0].text.trim();
 
     // Generate bonus stack image — all 3 together with descriptions
-    const stackPrompt = `Hyper-detailed DALL-E 3 prompt: Professional marketing bonus stack display image. Three distinct 3D ebook/product covers arranged in a fan or cascade layout on a dark navy background. Each cover is clearly different — one checklist style, one guide style, one digital/AI style. Gold "EXCLUSIVE BONUS PACKAGE" banner at top. Below each cover, 2 lines of white text showing the bonus title and a short benefit description. Clean premium marketing design, professional typography, subtle gold accents. High contrast, visually striking. 8K quality render. No people.`;
+    const stackSummaryText = bonuses.map(b => b.title + ': ' + (b.tagline || b.description || '')).join(' | ');
+    const stackPrompt = `Create a professional digital marketing bonus bundle display image. Show three 3D product mockup books/guides arranged side by side on a dark navy blue background with subtle gold sparkle effects. Left book: dark navy with gold checkmark icon. Middle book: royal blue with white arrow icon, slightly larger and elevated. Right book: dark purple with gold lightning bolt icon. Each book casts a soft reflection on the surface below. Above the books, gold text reads "EXCLUSIVE BONUS PACKAGE". Below the books, three columns of white text show short bonus descriptions. Premium marketing design with gold accents, dramatic studio lighting. Ultra high quality, 8K. No people, no hands.`;
     const stackImage = await generateImage(stackPrompt);
 
     const result = { bonuses, stack_summary: stackSummary, stack_image: stackImage };
@@ -822,22 +827,7 @@ app.post('/api/download/lead-magnet', async (req, res) => {
   const { lead_magnet, product_name } = req.body;
   if (!lead_magnet) return res.status(400).json({ success: false, message: 'Lead magnet required' });
   try {
-    const children = [
-      ...makeCoverPage(lead_magnet.title, lead_magnet.subtitle || '', 'Free Guide', product_name || 'JGAffiliate'),
-      ...lead_magnet.full_content.split('\n').map(line => {
-        const t = line.trim();
-        if (!t) return new Paragraph({ spacing: { before: 60, after: 60 }, children: [] });
-        if (t.startsWith('### ')) return makeHeading(t.slice(4), 3);
-        if (t.startsWith('## ')) return makeHeading(t.slice(3), 2);
-        if (t.startsWith('# ')) return makeHeading(t.slice(2), 1);
-        if (t.startsWith('- ') || t.startsWith('• ')) return makeBullet(t.slice(2));
-        if (/^\d+\.\s/.test(t)) return makeBullet(t);
-        if (t.startsWith('**') && t.endsWith('**')) return makeParagraph(t.slice(2,-2), { bold: true, size: 26, spaceBefore: 160, spaceAfter: 80 });
-        return makeParagraph(t, { spaceBefore: 80, spaceAfter: 80 });
-      }),
-      makeDivider(),
-      makeParagraph('© 2026 PromoLab · Jimmy Griffith, JGAffiliate', { center: true, size: 18, color: 'AAAAAA', spaceBefore: 200 })
-    ];
+    const children = parseContentToDocx(lead_magnet.full_content, product_name || 'JGAffiliate', lead_magnet.title, lead_magnet.subtitle || '', 'Free Guide');
     const filename = `Lead-Magnet-${(lead_magnet.title||'guide').replace(/[^a-z0-9]/gi,'_').slice(0,40)}.docx`;
     await buildAndSendDocx(res, children, filename);
   } catch (err) { res.status(500).json({ success: false, message: 'Download failed: ' + err.message }); }
