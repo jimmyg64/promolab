@@ -297,6 +297,29 @@ function compactAnalysisForPrompt(analysis) {
   };
 }
 
+function compactLeadMagnetForPrompt(leadMagnet) {
+  if (!leadMagnet) return null;
+  return {
+    title: leadMagnet.title || '',
+    subtitle: leadMagnet.subtitle || '',
+    description: leadMagnet.description || '',
+    bonus_summary_for_prompt: leadMagnet.bonus_summary_for_prompt || leadMagnet.description || leadMagnet.subtitle || leadMagnet.title || ''
+  };
+}
+
+function compactStackForPrompt(stack) {
+  if (!stack) return null;
+  return {
+    headline: stack.headline || '',
+    bullets: stack.bullets || [],
+    stack_summary_for_prompt: stack.stack_summary_for_prompt || stack.summary || ''
+  };
+}
+
+function summarizeForPrompt(text, maxChars = 700) {
+  return String(text || '').replace(/\s+/g, ' ').trim().slice(0, maxChars);
+}
+
 async function generateAiImage(prompt) {
   if (!process.env.OPENAI_API_KEY) return null;
   try {
@@ -575,10 +598,11 @@ app.post('/api/solo/bonus-plan', async (req, res) => {
   if (!user) return;
   const { project_id, analysis, angle } = req.body;
   try {
+    const compactAnalysis = compactAnalysisForPrompt(analysis || {});
     const plan = await askJson(`Create the buyer-only bonus stack plan.
 
 Offer analysis:
-${JSON.stringify(analysis)}
+${JSON.stringify(compactAnalysis)}
 
 Chosen angle: ${angle}
 
@@ -630,10 +654,11 @@ app.post('/api/solo/bonus', async (req, res) => {
   if (!user) return;
   const { project_id, analysis, angle, bonus } = req.body;
   try {
+    const compactAnalysis = compactAnalysisForPrompt(analysis || {});
     const full = await askJson(`Generate the complete text for this buyer-only bonus.
 
 Offer analysis:
-${JSON.stringify(analysis)}
+${JSON.stringify(compactAnalysis)}
 
 Chosen angle: ${angle}
 
@@ -665,6 +690,7 @@ Return JSON:
       number: full.number,
       theme: ['gold', 'blue', 'purple'][Number(full.number || 1) - 1] || 'blue'
     });
+    full.bonus_summary_for_prompt = summarizeForPrompt(`${full.title}. ${full.type}. ${full.tagline}. ${full.description}`);
     await saveContent(user.id, project_id, `bonus_${full.number}`, full);
     res.json({ success: true, bonus: full });
   } catch (err) {
@@ -701,6 +727,7 @@ Return JSON:
   "summary": "About 300 words. Sell the stack as the reason to buy through this affiliate link today.",
   "bullets": ["", "", ""]
 }`, 1800);
+    summary.stack_summary_for_prompt = summarizeForPrompt(`${summary.headline}. ${summary.summary} ${(summary.bullets || []).join(' ')}`);
     summary.stack_image = await createStackImage(compactBonuses);
     await saveContent(user.id, project_id, 'bonus_stack', summary);
     res.json({ success: true, stack: summary });
@@ -714,10 +741,11 @@ app.post('/api/solo/lead-magnet', async (req, res) => {
   if (!user) return;
   const { project_id, analysis, angle } = req.body;
   try {
+    const compactAnalysis = compactAnalysisForPrompt(analysis || {});
     const lm = await askJson(`Create a high-value lead magnet for the opt-in page.
 
 Offer analysis:
-${JSON.stringify(analysis)}
+${JSON.stringify(compactAnalysis)}
 
 Chosen angle: ${angle}
 
@@ -733,8 +761,9 @@ Return JSON:
   "subtitle": "",
   "description": "",
   "full_content": ""
-}`, 8000);
+}`, 7000);
     lm.cover_image = await createCoverImage({ title: lm.title, subtitle: lm.subtitle, badge: 'FREE GUIDE', theme: 'green' });
+    lm.lead_magnet_summary_for_prompt = summarizeForPrompt(`${lm.title}. ${lm.subtitle}. ${lm.description}`);
     await saveContent(user.id, project_id, 'lead_magnet', lm);
     res.json({ success: true, lead_magnet: lm });
   } catch (err) {
@@ -747,13 +776,16 @@ app.post('/api/solo/optin', async (req, res) => {
   if (!user) return;
   const { project_id, analysis, angle, lead_magnet } = req.body;
   try {
+    const compactAnalysis = compactAnalysisForPrompt(analysis || {});
+    const compactLeadMagnet = compactLeadMagnetForPrompt(lead_magnet);
     const optin = await askJson(`Generate opt-in squeeze page copy for cold solo ad traffic.
 
 Offer analysis:
-${JSON.stringify(analysis)}
+${JSON.stringify(compactAnalysis)}
 
 Chosen angle: ${angle}
-Lead magnet: ${lead_magnet ? JSON.stringify(lead_magnet) : 'No lead magnet selected.'}
+Lead magnet:
+${compactLeadMagnet ? JSON.stringify(compactLeadMagnet) : 'No lead magnet selected.'}
 
 Rules:
 - Do not mention buyer-only bonuses.
@@ -772,7 +804,7 @@ Return JSON:
   "trust_element": "",
   "privacy_statement": "",
   "design_notes": ["", "", ""]
-}`, 2500);
+}`, 1600);
     await saveContent(user.id, project_id, 'optin_page', optin);
     res.json({ success: true, optin });
   } catch (err) {
@@ -785,18 +817,23 @@ app.post('/api/solo/bridge', async (req, res) => {
   if (!user) return;
   const { project_id, analysis, angle, bridge_format, bonuses, bonus_stack, lead_magnet } = req.body;
   try {
+    const compactAnalysis = compactAnalysisForPrompt(analysis || {});
+    const compactBonuses = (bonuses || []).map(compactBonusForPrompt);
+    const compactLeadMagnet = compactLeadMagnetForPrompt(lead_magnet);
+    const compactStack = compactStackForPrompt(bonus_stack);
     const bridge = await askJson(`Generate the bridge page.
 
 Offer analysis:
-${JSON.stringify(analysis)}
+${JSON.stringify(compactAnalysis)}
 
 Chosen angle: ${angle}
 Bridge format: ${bridge_format || 'text'}
-Lead magnet: ${lead_magnet ? lead_magnet.title : 'none'}
+Lead magnet:
+${compactLeadMagnet ? JSON.stringify(compactLeadMagnet) : 'none'}
 Bonuses:
-${JSON.stringify(bonuses || [])}
+${JSON.stringify(compactBonuses)}
 Bonus stack:
-${JSON.stringify(bonus_stack || {})}
+${compactStack ? JSON.stringify(compactStack) : 'none'}
 
 Rules:
 - Bridge from opt-in to sales page.
@@ -819,7 +856,7 @@ Return JSON:
     "offer": "",
     "link_note": ""
   }
-}`, 5500);
+}`, 4200);
     await saveContent(user.id, project_id, 'bridge_page', bridge);
     res.json({ success: true, bridge });
   } catch (err) {
@@ -832,15 +869,19 @@ app.post('/api/solo/emails', async (req, res) => {
   if (!user) return;
   const { project_id, analysis, angle, bonuses, lead_magnet } = req.body;
   try {
+    const compactAnalysis = compactAnalysisForPrompt(analysis || {});
+    const compactBonuses = (bonuses || []).map(compactBonusForPrompt);
+    const compactLeadMagnet = compactLeadMagnetForPrompt(lead_magnet);
     const emails = await askJson(`Generate both segmented email sequences.
 
 Offer analysis:
-${JSON.stringify(analysis)}
+${JSON.stringify(compactAnalysis)}
 
 Chosen angle: ${angle}
-Lead magnet: ${lead_magnet ? lead_magnet.title : 'none'}
+Lead magnet:
+${compactLeadMagnet ? JSON.stringify(compactLeadMagnet) : 'none'}
 Bonuses:
-${JSON.stringify(bonuses || [])}
+${JSON.stringify(compactBonuses)}
 
 Rules:
 - Non-buyers sequence has 5 days: thank you/delivery, story-solution, value lesson, offer/bonuses, final push.
@@ -857,7 +898,7 @@ Return JSON:
   "buyers": [
     {"day": 1, "purpose": "", "subject_lines": ["", "", ""], "body": ""}
   ]
-}`, 8500);
+}`, 7600);
     await saveContent(user.id, project_id, 'emails', emails);
     res.json({ success: true, emails });
   } catch (err) {
