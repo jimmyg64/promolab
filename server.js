@@ -29,8 +29,8 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
-const CLAUDE_QUEUE_INTERVAL_MS = Number(process.env.CLAUDE_QUEUE_INTERVAL_MS || 4500);
-const CLAUDE_RATE_LIMIT_WAIT_MS = Number(process.env.CLAUDE_RATE_LIMIT_WAIT_MS || 65000);
+const CLAUDE_QUEUE_INTERVAL_MS = Number(process.env.CLAUDE_QUEUE_INTERVAL_MS || 22000);
+const CLAUDE_RATE_LIMIT_WAIT_MS = Number(process.env.CLAUDE_RATE_LIMIT_WAIT_MS || 95000);
 let claudeQueue = Promise.resolve();
 let lastClaudeStart = 0;
 
