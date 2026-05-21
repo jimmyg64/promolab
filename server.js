@@ -165,6 +165,16 @@ function makeCoverPage(title, subtitle, type, productName) {
   ];
 }
 
+function cleanMarkdownLine(line) {
+  return line
+    .replace(/^#{1,6}\s+/, '')         // strip # headers (handled separately)
+    .replace(/\*\*(.*?)\*\*/g, '$1') // **bold** -> bold
+    .replace(/\*(.*?)\*/g, '$1')       // *italic* -> italic
+    .replace(/`([^`]+)`/g, '$1')         // `code` -> code
+    .replace(/^[-*+]\s+/, '')           // strip bullet markers (handled separately)
+    .trim();
+}
+
 function parseContentToDocx(content, productName, title, subtitle, type) {
   const children = [];
   children.push(...makeCoverPage(title, subtitle, type, productName));
@@ -177,14 +187,20 @@ function parseContentToDocx(content, productName, title, subtitle, type) {
     else if (trimmed.startsWith('## ')) { children.push(makeHeading(trimmed.slice(3), 2)); }
     else if (trimmed.startsWith('# ')) { children.push(makeHeading(trimmed.slice(2), 1)); }
     else if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) { children.push(makeBullet(trimmed.slice(2))); }
-    else if (/^\d+\.\s/.test(trimmed)) { children.push(makeBullet(trimmed)); }
+    else if (/^\d+\.\s/.test(trimmed)) { children.push(makeBullet(cleanMarkdownLine(trimmed))); }
     else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
       children.push(makeParagraph(trimmed.slice(2, -2), { bold: true, size: 26, spaceBefore: 160, spaceAfter: 80 }));
     }
     else {
       // Strip any remaining inline markdown: **bold**, *italic*, `code`
-      let clean = trimmed.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/`([^`]+)`/g, '$1');
-      children.push(makeParagraph(clean, { spaceBefore: 80, spaceAfter: 80 }));
+      let clean = trimmed
+        .replace(/\*\*(.*?)\*\*/g, '$1')   // remove **bold**
+        .replace(/\*(.*?)\*/g, '$1')          // remove *italic*
+        .replace(/`([^`]+)`/g, '$1')            // remove `code`
+        .replace(/^#+\s+/, '')                 // remove leading # symbols
+        .replace(/^[-*+]\s+/, '')              // remove leading - * + bullets
+        .trim();
+      if (clean) children.push(makeParagraph(clean, { spaceBefore: 80, spaceAfter: 80 }));
     }
   }
 
@@ -341,7 +357,7 @@ Return ONLY valid JSON:
 {
   "title": "Compelling benefit-driven title with specifics",
   "subtitle": "Supporting subtitle that expands the promise",
-  "cover_prompt": "Create a photorealistic 3D digital product mockup: a premium hardcover book standing upright on a dark reflective marble surface. The book cover is deep navy blue with gold foil embossed title text. A large relevant gold icon in the center of the cover (related to the topic). Thick book with visible golden page edges on the side. Professional studio lighting from upper right, casting realistic shadows. The cover has an elegant gold border frame. Ultra realistic product photography, bokeh background, 8K quality, atmospheric dark studio setting. No people, no hands.",
+  "cover_prompt": "3D rendered hardcover book product mockup on dark reflective surface. Navy blue cover, gold embossed title, gold decorative icon center, visible thick pages on right side. Studio lighting, soft shadow, bokeh background. Product photography style.",
   "full_content": "Complete 1500-2000 word lead magnet with proper markdown formatting — real headers, numbered steps, bullet points, examples. Write every word. No placeholders."
 }` }]
     });
@@ -398,7 +414,7 @@ Return ONLY valid JSON array — no text before or after:
     "tagline": "One sentence that sells the bonus",
     "description": "Two sentences: what it is and what specific problem it solves",
     "full_content": "400-600 words of real checklist content. Numbered action steps organized by phase. Every step is specific and actionable.",
-    "cover_prompt": "Create a photorealistic 3D digital product mockup: a hardcover book standing upright on a dark reflective surface. The book cover is deep navy blue with a large gold checkmark icon in the center. Bold white sans-serif title text at the top. Subtle gold border frame around the cover. Studio lighting from upper left casting a soft shadow to the right. The book has visible pages/spine on the right side. Ultra realistic product photography style, 8K quality, dark background with subtle gradient. No people, no hands, no text other than the title area."
+    "cover_prompt": "3D rendered hardcover book mockup floating on dark surface with soft reflection. Deep navy blue cover, large gold checkmark icon in center, white title text, gold border frame, visible page thickness on right. Dramatic side lighting. Product photography."
   },
   {
     "number": 2,
@@ -407,7 +423,7 @@ Return ONLY valid JSON array — no text before or after:
     "tagline": "One sentence that sells the bonus",
     "description": "Two sentences description",
     "full_content": "400-600 words of real guide content with headers, explanation, examples, steps.",
-    "cover_prompt": "Create a photorealistic 3D digital product mockup: a softcover guide or report lying at a slight angle on a dark reflective surface. The cover is deep royal blue with a white geometric arrow or map pin icon in the center. Clean modern sans-serif title text in white. A thin white border and subtle texture on the cover. Dramatic studio lighting from above, soft glow around the product. Visible pages fanning out slightly from the bottom. Ultra realistic product photography, 8K quality, gradient dark background. No people, no hands."
+    "cover_prompt": "3D rendered softcover guide mockup at slight angle on dark reflective desk. Royal blue cover, white compass or arrow icon center, white title text, thin white border, pages visible at bottom edge. Overhead studio lighting with soft glow. Product photography."
   },
   {
     "number": 3,
@@ -416,7 +432,7 @@ Return ONLY valid JSON array — no text before or after:
     "tagline": "One sentence that sells the bonus",
     "description": "Two sentences description",
     "full_content": "8-10 complete prompts. Each has: PROMPT TITLE in caps, full copy-paste prompt text, brief usage note.",
-    "cover_prompt": "Create a photorealistic 3D digital product mockup: a sleek hardcover book on a dark reflective surface. The cover is dark purple with electric gold AI circuit/neural network pattern as background texture. A glowing gold lightning bolt or brain icon in the center. Bold white futuristic title text. Dramatic studio lighting with purple and gold light accents. The book casts a sharp reflection on the surface below. Premium product photography style, 8K quality, very dark atmospheric background. No people, no hands."
+    "cover_prompt": "3D rendered hardcover book mockup on dark glossy surface with sharp reflection. Dark purple cover with subtle gold circuit pattern texture, glowing gold lightning bolt icon center, white futuristic title text. Purple and gold studio lighting. Product photography."
   }
 ]` }]
     });
@@ -457,7 +473,7 @@ Return only the plain copy text. No JSON.` }]
 
     // Generate bonus stack image — all 3 together with descriptions
     const stackSummaryText = bonuses.map(b => b.title + ': ' + (b.tagline || b.description || '')).join(' | ');
-    const stackPrompt = `Create a professional digital marketing bonus bundle display image. Show three 3D product mockup books/guides arranged side by side on a dark navy blue background with subtle gold sparkle effects. Left book: dark navy with gold checkmark icon. Middle book: royal blue with white arrow icon, slightly larger and elevated. Right book: dark purple with gold lightning bolt icon. Each book casts a soft reflection on the surface below. Above the books, gold text reads "EXCLUSIVE BONUS PACKAGE". Below the books, three columns of white text show short bonus descriptions. Premium marketing design with gold accents, dramatic studio lighting. Ultra high quality, 8K. No people, no hands.`;
+    const stackPrompt = `Three 3D book product mockups arranged side by side on dark navy surface with reflections. Left book: navy/gold with checkmark. Center book: royal blue/white with arrow icon, slightly taller. Right book: purple/gold with lightning bolt. Gold sparkle particles floating around books. Below each book, short white label text. Gold banner above reading EXCLUSIVE BONUS PACKAGE. Studio lighting, dramatic shadows. Marketing display image.`;
     const stackImage = await generateImage(stackPrompt);
 
     const result = { bonuses, stack_summary: stackSummary, stack_image: stackImage };
