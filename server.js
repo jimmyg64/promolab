@@ -241,6 +241,28 @@ function stackImage(bonuses) {
   return svgUri(`<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900"><defs><radialGradient id="g" cx="50%" cy="32%" r="70%"><stop offset="0" stop-color="#1e3a8a" stop-opacity=".62"/><stop offset="1" stop-color="#07111f"/></radialGradient><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000" flood-opacity=".55"/></filter></defs><rect width="1400" height="900" fill="url(#g)"/><circle cx="230" cy="170" r="4" fill="#f8c75a" opacity=".8"/><circle cx="1120" cy="220" r="5" fill="#dbeafe" opacity=".6"/><circle cx="1030" cy="740" r="3" fill="#f8c75a" opacity=".75"/><ellipse cx="650" cy="560" rx="520" ry="70" fill="#000" opacity=".35"/><text x="650" y="105" text-anchor="middle" font-family="Arial" font-size="50" font-weight="900" fill="#f8c75a">EXCLUSIVE BONUS PACKAGE</text><text x="650" y="150" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#dbeafe">Three buyer-only resources that make the main offer easier to use</text><g transform="translate(120 0)">${cards}</g></svg>`);
 }
 
+function compactBonusForPrompt(bonus, index) {
+  return {
+    number: bonus.number || index + 1,
+    title: bonus.title || '',
+    type: bonus.type || '',
+    tagline: bonus.tagline || '',
+    description: bonus.description || ''
+  };
+}
+
+function compactAnalysisForPrompt(analysis) {
+  return {
+    product_name: analysis.product_name || '',
+    niche: analysis.niche || '',
+    main_promise: analysis.main_promise || '',
+    main_pain_point: analysis.main_pain_point || '',
+    target_audience: analysis.target_audience || '',
+    audience_psychology: analysis.audience_psychology || '',
+    value_gaps: analysis.value_gaps || []
+  };
+}
+
 async function generateAiImage(prompt) {
   if (!process.env.OPENAI_API_KEY) return null;
   try {
@@ -621,12 +643,23 @@ app.post('/api/solo/bonus-stack', async (req, res) => {
   if (!user) return;
   const { project_id, analysis, angle, bonuses } = req.body;
   try {
+    const compactBonuses = (bonuses || []).map(compactBonusForPrompt);
+    const compactAnalysis = compactAnalysisForPrompt(analysis || {});
     const summary = await askJson(`Write the approved buyer-only bonus stack summary for the bridge page.
 
-Offer: ${analysis.product_name}
+Offer analysis:
+${JSON.stringify(compactAnalysis)}
+
 Angle: ${angle}
+
 Bonuses:
-${JSON.stringify(bonuses)}
+${JSON.stringify(compactBonuses)}
+
+Rules:
+- Do not summarize the full bonus documents.
+- Sell the 3 bonuses as a buyer-only package.
+- Make the stack feel like the missing implementation pieces that make the main offer easier to use.
+- Keep the copy direct, benefit-driven, and suitable for bridge page placement.
 
 Return JSON:
 {
@@ -634,7 +667,7 @@ Return JSON:
   "summary": "About 300 words. Sell the stack as the reason to buy through this affiliate link today.",
   "bullets": ["", "", ""]
 }`, 1800);
-    summary.stack_image = await createStackImage(bonuses);
+    summary.stack_image = await createStackImage(compactBonuses);
     await saveContent(user.id, project_id, 'bonus_stack', summary);
     res.json({ success: true, stack: summary });
   } catch (err) {
