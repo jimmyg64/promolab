@@ -243,11 +243,12 @@ async function loadUsage(){
     var data = await res.json();
     if(!data.success) return;
     var s = data.summary || {};
+    var remaining = s.remaining === null || s.remaining === undefined ? '∞' : s.remaining;
     document.getElementById('usage-box').innerHTML =
       '<div class="usage-grid">'+
       '<div class="usage-item"><div class="usage-label">This Month</div><div class="usage-value">'+(s.total_events||0)+'</div></div>'+
       '<div class="usage-item"><div class="usage-label">Successful</div><div class="usage-value">'+(s.success||0)+'</div></div>'+
-      '<div class="usage-item"><div class="usage-label">Failed</div><div class="usage-value">'+(s.failed||0)+'</div></div>'+
+      '<div class="usage-item"><div class="usage-label">Remaining</div><div class="usage-value">'+remaining+'</div></div>'+
       '<div class="usage-item"><div class="usage-label">Est. Tokens</div><div class="usage-value">'+formatNum((s.estimated_input_tokens||0)+(s.estimated_output_tokens||0))+'</div></div>'+
       '</div>';
   }catch(e){}
