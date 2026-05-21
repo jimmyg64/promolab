@@ -31,6 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
 const CLAUDE_QUEUE_INTERVAL_MS = Number(process.env.CLAUDE_QUEUE_INTERVAL_MS || 22000);
 const CLAUDE_RATE_LIMIT_WAIT_MS = Number(process.env.CLAUDE_RATE_LIMIT_WAIT_MS || 95000);
+const DEFAULT_MONTHLY_GENERATION_LIMIT = Number(process.env.DEFAULT_MONTHLY_GENERATION_LIMIT || 100);
 let claudeQueue = Promise.resolve();
 let lastClaudeStart = 0;
 
@@ -116,6 +117,50 @@ async function requireSoloAds(req, res) {
     return null;
   }
   return user;
+}
+
+function monthStartIso() {
+  const start = new Date();
+  start.setUTCDate(1);
+  start.setUTCHours(0, 0, 0, 0);
+  return start.toISOString();
+}
+
+async function getMonthlyUsageSummary(userId) {
+  const { data, error } = await adminClient
+    .from('promolab_usage')
+    .select('status, estimated_input_tokens, estimated_output_tokens, action')
+    .eq('user_id', userId)
+    .gte('created_at', monthStartIso());
+  if (error) throw error;
+  const rows = data || [];
+  return rows.reduce((acc, row) => {
+    acc.total_events += 1;
+    acc.success += row.status === 'success' ? 1 : 0;
+    acc.failed += row.status === 'failed' ? 1 : 0;
+    acc.estimated_input_tokens += row.estimated_input_tokens || 0;
+    acc.estimated_output_tokens += row.estimated_output_tokens || 0;
+    acc.by_action[row.action] = (acc.by_action[row.action] || 0) + 1;
+    return acc;
+  }, { total_events: 0, success: 0, failed: 0, estimated_input_tokens: 0, estimated_output_tokens: 0, by_action: {} });
+}
+
+async function requireUsageAvailable(user, res) {
+  const access = await getUserAccess(user.id);
+  const limit = access.is_admin ? Infinity : DEFAULT_MONTHLY_GENERATION_LIMIT;
+  if (!Number.isFinite(limit)) return true;
+  const summary = await getMonthlyUsageSummary(user.id);
+  if (summary.success >= limit) {
+    res.status(429).json({
+      success: false,
+      message: `Monthly generation limit reached (${summary.success}/${limit}). Please upgrade or wait until next month.`,
+      usage_limit_reached: true,
+      limit,
+      used: summary.success
+    });
+    return false;
+  }
+  return true;
 }
 
 function jsonFromText(text) {
@@ -582,6 +627,7 @@ app.get('/me', async (req, res) => {
 app.post('/api/solo/analyze', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { url, pasted_text, affiliate_link, audience_note, tone_note } = req.body;
   try {
     const pageText = await fetchSalesPage(url, pasted_text);
@@ -650,6 +696,7 @@ app.post('/api/solo/project/:id/angle', async (req, res) => {
 app.post('/api/solo/bonus-plan', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { project_id, analysis, angle } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
@@ -707,6 +754,7 @@ Return JSON:
 app.post('/api/solo/bonus', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { project_id, analysis, angle, bonus } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
@@ -757,6 +805,7 @@ Return JSON:
 app.post('/api/solo/bonus-stack', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { project_id, analysis, angle, bonuses } = req.body;
   try {
     const compactBonuses = (bonuses || []).map(compactBonusForPrompt);
@@ -796,6 +845,7 @@ Return JSON:
 app.post('/api/solo/lead-magnet', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { project_id, analysis, angle } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
@@ -832,6 +882,7 @@ Return JSON:
 app.post('/api/solo/optin', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { project_id, analysis, angle, lead_magnet } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
@@ -874,6 +925,7 @@ Return JSON:
 app.post('/api/solo/bridge', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { project_id, analysis, angle, bridge_format, bonuses, bonus_stack, lead_magnet } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
@@ -927,6 +979,7 @@ Return JSON:
 app.post('/api/solo/emails', async (req, res) => {
   const user = await requireSoloAds(req, res);
   if (!user) return;
+  if (!(await requireUsageAvailable(user, res))) return;
   const { project_id, analysis, angle, bonuses, lead_magnet } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
@@ -1004,6 +1057,7 @@ app.get('/api/projects/:id', async (req, res) => {
 app.get('/api/usage/me', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  const access = await getUserAccess(user.id);
   const start = new Date();
   start.setUTCDate(1);
   start.setUTCHours(0, 0, 0, 0);
@@ -1024,6 +1078,9 @@ app.get('/api/usage/me', async (req, res) => {
     acc.by_action[row.action] = (acc.by_action[row.action] || 0) + 1;
     return acc;
   }, { total_events: 0, success: 0, failed: 0, estimated_input_tokens: 0, estimated_output_tokens: 0, by_action: {} });
+  const limit = access.is_admin ? null : DEFAULT_MONTHLY_GENERATION_LIMIT;
+  summary.monthly_limit = limit;
+  summary.remaining = limit === null ? null : Math.max(0, limit - summary.success);
   res.json({ success: true, summary, recent: rows.slice(0, 25) });
 });
 
