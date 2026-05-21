@@ -192,7 +192,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#4F46B8}
 var state = {
   user: null, access: {}, analysis: null, selectedChannel: null,
   selectedAngle: null, projectId: null, bonuses: [], stackSummary: '',
-  stackImage: null, leadMagnet: null, currentAction: null
+  stackImage: null, leadMagnet: null, currentAction: null,
+  optinContent: null, bridgeContent: null, bridgeFormat: null, blueprint: null
 };
 
 var ANGLES = [
@@ -417,7 +418,7 @@ async function buildLeadMagnet(){
 function renderLeadMagnet(lm){
   var contentId='lm_content';
   var html='<div class="card solo">';
-  html+='<div class="section-label">Lead magnet <button class="regen-btn" onclick="buildLeadMagnet()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="downloadLeadMagnet()">&#8595; Download</button></div>';
+  html+='<div class="section-label">Lead magnet <button class="regen-btn" onclick="buildLeadMagnet()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="downloadLeadMagnet()">&#8595; Download .docx</button></div>';
   if(lm.cover_image){
     html+='<img src="'+lm.cover_image+'" style="width:160px;height:160px;border-radius:8px;margin-bottom:12px;border:1px solid #EEEDFE;">';
   } else {
@@ -434,14 +435,18 @@ function renderLeadMagnet(lm){
 
 async function downloadLeadMagnet(){
   if(!state.leadMagnet){alert('No lead magnet to download.');return;}
+  var btn=event.target;btn.disabled=true;btn.textContent='Preparing...';
   try {
     var res=await fetch('/api/download/lead-magnet',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead_magnet:state.leadMagnet,product_name:state.analysis?state.analysis.product_name:'this offer'})});
     if(res.ok){
       var blob=await res.blob();
       var url=URL.createObjectURL(blob);
-      var a=document.createElement('a');a.href=url;a.download='Lead-Magnet.html';a.click();URL.revokeObjectURL(url);
-    } else {alert('Download failed.');}
-  } catch(e){alert('Download error: '+e.message);}
+      var a=document.createElement('a');a.href=url;
+      a.download='Lead-Magnet-'+(state.leadMagnet.title||'guide').replace(/[^a-z0-9]/gi,'_').slice(0,40)+'.docx';
+      a.click();URL.revokeObjectURL(url);
+      btn.textContent='Downloaded!';setTimeout(function(){btn.disabled=false;btn.textContent='↓ Download .docx';},2000);
+    } else {alert('Download failed.');btn.disabled=false;btn.textContent='↓ Download .docx';}
+  } catch(e){alert('Download error: '+e.message);btn.disabled=false;btn.textContent='↓ Download .docx';}
 }
 
 // ── Bonuses ───────────────────────────────────────────────────
@@ -537,7 +542,7 @@ async function buildOptin(){
       body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,lead_magnet:state.leadMagnet,project_id:state.projectId})
     });
     var data=await res.json();
-    if(data.success){renderOptin(data.content);}
+    if(data.success){state.optinContent=data.content;renderOptin(data.content);}
     else{showOutputError(data.message||'Opt-in generation failed.');}
   } catch(e){showOutputError('Request failed: '+e.message);}
 }
@@ -545,7 +550,7 @@ async function buildOptin(){
 function renderOptin(c){
   var haId='optin_ha';var hbId='optin_hb';var subId='optin_sub';var bullId='optin_bullets';var ctaId='optin_cta';
   var html='<div class="card solo">';
-  html+='<div class="section-label">Opt-in page <button class="regen-btn" onclick="buildOptin()">Regenerate</button></div>';
+  html+='<div class="section-label">Opt-in page <button class="regen-btn" onclick="buildOptin()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="previewOptinHtml()">&#128065; Preview HTML</button><button class="btn btn-outline btn-sm" style="margin-left:6px" onclick="downloadOptinHtml()">&#8595; Download HTML</button></div>';
   html+='<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note||'')+'</div>';
   html+='<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">A/B Headline Split Test</div>';
   html+='<div class="ab-grid">';
@@ -593,7 +598,7 @@ async function buildBridgeFormat(format){
       body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,format:format,bonuses:state.bonuses,stack_summary:state.stackSummary,lead_magnet:state.leadMagnet,project_id:state.projectId})
     });
     var data=await res.json();
-    if(data.success){renderBridge(data.content,format);}
+    if(data.success){state.bridgeContent=data.content;state.bridgeFormat=format;renderBridge(data.content,format);}
     else{showOutputError(data.message||'Bridge generation failed.');}
   } catch(e){showOutputError('Request failed: '+e.message);}
 }
@@ -601,7 +606,7 @@ async function buildBridgeFormat(format){
 function renderBridge(c,format){
   var bhId='bridge_h';var bcId='bridge_c';var ctaId='bridge_cta';
   var html='<div class="card solo">';
-  html+='<div class="section-label">Bridge page — '+format+' <button class="regen-btn" onclick="buildBridge()">Change format</button></div>';
+  html+='<div class="section-label">Bridge page — '+format+' <button class="regen-btn" onclick="buildBridge()">Change format</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="previewBridgeHtml()">&#128065; Preview HTML</button><button class="btn btn-outline btn-sm" style="margin-left:6px" onclick="downloadBridgeHtml()">&#8595; Download HTML</button></div>';
   if(c.above_fold_note) html+='<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note)+'</div>';
   html+='<div class="output-label">Headline <button class="copy-btn" onclick="copyText(\''+bhId+'\',this)">Copy</button></div>';
   html+='<div class="output-box" id="'+bhId+'">'+esc(c.headline)+'</div>';
@@ -862,6 +867,37 @@ function copyText(id,btn){
 function esc(s){
   if(s===null||s===undefined) return '';
   var d=document.createElement('div');d.textContent=String(s);return d.innerHTML;
+}
+
+
+// ── Opt-in HTML preview/download ─────────────────────────────
+function previewOptinHtml(){
+  if(!state.optinContent||!state.optinContent.html_preview){alert('Generate the opt-in page first.');return;}
+  var w=window.open('','_blank');w.document.write(state.optinContent.html_preview);w.document.close();
+}
+async function downloadOptinHtml(){
+  if(!state.optinContent||!state.optinContent.html_preview){alert('Generate the opt-in page first.');return;}
+  var btn=event.target;btn.disabled=true;btn.textContent='Preparing...';
+  try {
+    var res=await fetch('/api/download/optin-html',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({html_content:state.optinContent.html_preview,product_name:state.analysis?state.analysis.product_name:'offer'})});
+    if(res.ok){var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Opt-In-Page.html';a.click();URL.revokeObjectURL(url);btn.textContent='Downloaded!';setTimeout(function(){btn.disabled=false;btn.textContent='↓ Download HTML';},2000);}
+    else{alert('Download failed.');btn.disabled=false;btn.textContent='↓ Download HTML';}
+  } catch(e){alert('Error: '+e.message);btn.disabled=false;btn.textContent='↓ Download HTML';}
+}
+
+// ── Bridge HTML preview/download ──────────────────────────────
+function previewBridgeHtml(){
+  if(!state.bridgeContent||!state.bridgeContent.html_preview){alert('Generate the bridge page first.');return;}
+  var w=window.open('','_blank');w.document.write(state.bridgeContent.html_preview);w.document.close();
+}
+async function downloadBridgeHtml(){
+  if(!state.bridgeContent||!state.bridgeContent.html_preview){alert('Generate the bridge page first.');return;}
+  var btn=event.target;btn.disabled=true;btn.textContent='Preparing...';
+  try {
+    var res=await fetch('/api/download/bridge-html',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({html_content:state.bridgeContent.html_preview,product_name:state.analysis?state.analysis.product_name:'offer'})});
+    if(res.ok){var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Bridge-Page.html';a.click();URL.revokeObjectURL(url);btn.textContent='Downloaded!';setTimeout(function(){btn.disabled=false;btn.textContent='↓ Download HTML';},2000);}
+    else{alert('Download failed.');btn.disabled=false;btn.textContent='↓ Download HTML';}
+  } catch(e){alert('Error: '+e.message);btn.disabled=false;btn.textContent='↓ Download HTML';}
 }
 
 init();
