@@ -104,7 +104,9 @@ async function getUserAccess(userId) {
     email_sequence: false,
     launchjacking: false,
     affiliate_launch_guide: false,
-    is_admin: false
+    is_admin: false,
+    plan_name: 'solo_ads_basic',
+    monthly_generation_limit: null
   };
 }
 
@@ -147,7 +149,10 @@ async function getMonthlyUsageSummary(userId) {
 
 async function requireUsageAvailable(user, res) {
   const access = await getUserAccess(user.id);
-  const limit = access.is_admin ? Infinity : DEFAULT_MONTHLY_GENERATION_LIMIT;
+  const userLimit = access.monthly_generation_limit === null || access.monthly_generation_limit === undefined
+    ? DEFAULT_MONTHLY_GENERATION_LIMIT
+    : Number(access.monthly_generation_limit);
+  const limit = access.is_admin ? Infinity : userLimit;
   if (!Number.isFinite(limit)) return true;
   const summary = await getMonthlyUsageSummary(user.id);
   if (summary.success >= limit) {
@@ -1078,9 +1083,13 @@ app.get('/api/usage/me', async (req, res) => {
     acc.by_action[row.action] = (acc.by_action[row.action] || 0) + 1;
     return acc;
   }, { total_events: 0, success: 0, failed: 0, estimated_input_tokens: 0, estimated_output_tokens: 0, by_action: {} });
-  const limit = access.is_admin ? null : DEFAULT_MONTHLY_GENERATION_LIMIT;
+  const accessLimit = access.monthly_generation_limit === null || access.monthly_generation_limit === undefined
+    ? DEFAULT_MONTHLY_GENERATION_LIMIT
+    : Number(access.monthly_generation_limit);
+  const limit = access.is_admin ? null : accessLimit;
   summary.monthly_limit = limit;
   summary.remaining = limit === null ? null : Math.max(0, limit - summary.success);
+  summary.plan_name = access.plan_name || (access.is_admin ? 'admin' : 'solo_ads_basic');
   res.json({ success: true, summary, recent: rows.slice(0, 25) });
 });
 
