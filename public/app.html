@@ -522,13 +522,32 @@ function renderBonuses(bonuses,stackSummary,stackImage){
 async function downloadBonus(num){
   var bonus=state.bonuses.find(function(b){return b.number===num;});
   if(!bonus){alert('Bonus not found.');return;}
+  var btn=event.target;
+  btn.disabled=true;btn.textContent='Preparing...';
   try {
-    var res=await fetch('/api/download/bonus',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({bonus:bonus,product_name:state.analysis?state.analysis.product_name:'this offer'})});
-    if(res.ok){var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Bonus-'+num+'-'+((bonus.title||'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40))+'.docx';a.click();URL.revokeObjectURL(url);btn.textContent='Downloaded!';setTimeout(function(){btn.disabled=false;btn.textContent='↓ .docx';},2000);}else{alert('Download failed.');btn.disabled=false;btn.textContent='↓ .docx';}
-    else{alert('Download failed.');}
-  } catch(e){alert('Download error: '+e.message);}
+    var res=await fetch('/api/download/bonus',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bonus:bonus,product_name:state.analysis?state.analysis.product_name:'this offer'})
+    });
+    if(res.ok){
+      var blob=await res.blob();
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='Bonus-'+num+'-'+((bonus.title||'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40))+'.docx';
+      a.click();
+      URL.revokeObjectURL(url);
+      btn.textContent='Downloaded!';
+      setTimeout(function(){btn.disabled=false;btn.textContent='↓ .docx';},2000);
+    } else {
+      alert('Download failed.');
+      btn.disabled=false;btn.textContent='↓ .docx';
+    }
+  } catch(e){
+    alert('Download error: '+e.message);
+    btn.disabled=false;btn.textContent='↓ .docx';
+  }
 }
-
 async function downloadAllBonuses(){
   if(!state.bonuses||!state.bonuses.length){alert('No bonuses to download.');return;}
   var btn=event.target;btn.disabled=true;btn.textContent='Preparing...';
