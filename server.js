@@ -191,6 +191,59 @@ async function askJson(prompt, maxTokens = 5000, repairInstruction = 'Return val
   return fixed;
 }
 
+function estimateTokensFromChars(chars) {
+  return Math.ceil(Number(chars || 0) / 4);
+}
+
+async function logUsage({ userId, projectId, module = 'solo_ads', action, provider = 'anthropic', model = MODEL, status = 'success', inputText = '', outputText = '', error }) {
+  try {
+    const inputChars = String(inputText || '').length;
+    const outputChars = String(outputText || '').length;
+    await adminClient.from('promolab_usage').insert({
+      user_id: userId,
+      project_id: projectId || null,
+      module,
+      action,
+      provider,
+      model,
+      status,
+      input_chars: inputChars,
+      output_chars: outputChars,
+      estimated_input_tokens: estimateTokensFromChars(inputChars),
+      estimated_output_tokens: estimateTokensFromChars(outputChars),
+      error_message: error ? String(error).slice(0, 1000) : null,
+      created_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.log('Usage logging skipped:', err.message);
+  }
+}
+
+async function trackedAskJson({ userId, projectId, action, prompt, maxTokens, repairInstruction }) {
+  try {
+    const result = await askJson(prompt, maxTokens, repairInstruction);
+    await logUsage({
+      userId,
+      projectId,
+      action,
+      inputText: prompt,
+      outputText: JSON.stringify(result),
+      status: 'success'
+    });
+    return result;
+  } catch (err) {
+    await logUsage({
+      userId,
+      projectId,
+      action,
+      inputText: prompt,
+      status: 'failed',
+      error: err.message || err
+    });
+    throw err;
+  }
+}
+
 async function fetchSalesPage(url, pastedText) {
   if (pastedText && pastedText.trim()) return pastedText.trim().slice(0, 14000);
   if (!url) return '';
@@ -532,7 +585,7 @@ app.post('/api/solo/analyze', async (req, res) => {
   const { url, pasted_text, affiliate_link, audience_note, tone_note } = req.body;
   try {
     const pageText = await fetchSalesPage(url, pasted_text);
-    const analysis = await askJson(`Analyze this affiliate offer for a solo ads funnel.
+    const prompt = `Analyze this affiliate offer for a solo ads funnel.
 
 Sales page URL: ${url || 'not provided'}
 Affiliate link: ${affiliate_link || 'not provided'}
@@ -566,7 +619,8 @@ Return JSON:
     "tier1_suitability": 0,
     "notes": ""
   }
-}`, 3500);
+}`;
+    const analysis = await trackedAskJson({ userId: user.id, projectId: null, action: 'analyze_offer', prompt, maxTokens: 3500 });
 
     const { data: project, error } = await adminClient.from('promolab_projects').insert({
       user_id: user.id,
@@ -599,7 +653,7 @@ app.post('/api/solo/bonus-plan', async (req, res) => {
   const { project_id, analysis, angle } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
-    const plan = await askJson(`Create the buyer-only bonus stack plan.
+    const prompt = `Create the buyer-only bonus stack plan.
 
 Offer analysis:
 ${JSON.stringify(compactAnalysis)}
@@ -641,7 +695,8 @@ Return JSON:
       "why_it_sells_the_offer": ""
     }
   ]
-}`, 3000);
+}`;
+    const plan = await trackedAskJson({ userId: user.id, projectId: project_id, action: 'bonus_plan', prompt, maxTokens: 3000 });
     await saveContent(user.id, project_id, 'bonus_plan', plan);
     res.json({ success: true, plan });
   } catch (err) {
@@ -655,7 +710,7 @@ app.post('/api/solo/bonus', async (req, res) => {
   const { project_id, analysis, angle, bonus } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
-    const full = await askJson(`Generate the complete text for this buyer-only bonus.
+    const prompt = `Generate the complete text for this buyer-only bonus.
 
 Offer analysis:
 ${JSON.stringify(compactAnalysis)}
@@ -682,7 +737,8 @@ Return JSON:
   "tagline": "",
   "description": "",
   "full_content": ""
-}`, 7000);
+}`;
+    const full = await trackedAskJson({ userId: user.id, projectId: project_id, action: `bonus_${Number(bonus.number || 1)}`, prompt, maxTokens: 7000 });
     full.cover_image = await createCoverImage({
       title: full.title,
       subtitle: full.tagline || full.type,
@@ -705,7 +761,7 @@ app.post('/api/solo/bonus-stack', async (req, res) => {
   try {
     const compactBonuses = (bonuses || []).map(compactBonusForPrompt);
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
-    const summary = await askJson(`Write the approved buyer-only bonus stack summary for the bridge page.
+    const prompt = `Write the approved buyer-only bonus stack summary for the bridge page.
 
 Offer analysis:
 ${JSON.stringify(compactAnalysis)}
@@ -726,7 +782,8 @@ Return JSON:
   "headline": "",
   "summary": "About 300 words. Sell the stack as the reason to buy through this affiliate link today.",
   "bullets": ["", "", ""]
-}`, 1800);
+}`;
+    const summary = await trackedAskJson({ userId: user.id, projectId: project_id, action: 'bonus_stack', prompt, maxTokens: 1800 });
     summary.stack_summary_for_prompt = summarizeForPrompt(`${summary.headline}. ${summary.summary} ${(summary.bullets || []).join(' ')}`);
     summary.stack_image = await createStackImage(compactBonuses);
     await saveContent(user.id, project_id, 'bonus_stack', summary);
@@ -742,7 +799,7 @@ app.post('/api/solo/lead-magnet', async (req, res) => {
   const { project_id, analysis, angle } = req.body;
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
-    const lm = await askJson(`Create a high-value lead magnet for the opt-in page.
+    const prompt = `Create a high-value lead magnet for the opt-in page.
 
 Offer analysis:
 ${JSON.stringify(compactAnalysis)}
@@ -761,7 +818,8 @@ Return JSON:
   "subtitle": "",
   "description": "",
   "full_content": ""
-}`, 7000);
+}`;
+    const lm = await trackedAskJson({ userId: user.id, projectId: project_id, action: 'lead_magnet', prompt, maxTokens: 7000 });
     lm.cover_image = await createCoverImage({ title: lm.title, subtitle: lm.subtitle, badge: 'FREE GUIDE', theme: 'green' });
     lm.lead_magnet_summary_for_prompt = summarizeForPrompt(`${lm.title}. ${lm.subtitle}. ${lm.description}`);
     await saveContent(user.id, project_id, 'lead_magnet', lm);
@@ -778,7 +836,7 @@ app.post('/api/solo/optin', async (req, res) => {
   try {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
     const compactLeadMagnet = compactLeadMagnetForPrompt(lead_magnet);
-    const optin = await askJson(`Generate opt-in squeeze page copy for cold solo ad traffic.
+    const prompt = `Generate opt-in squeeze page copy for cold solo ad traffic.
 
 Offer analysis:
 ${JSON.stringify(compactAnalysis)}
@@ -804,7 +862,8 @@ Return JSON:
   "trust_element": "",
   "privacy_statement": "",
   "design_notes": ["", "", ""]
-}`, 1600);
+}`;
+    const optin = await trackedAskJson({ userId: user.id, projectId: project_id, action: 'optin_page', prompt, maxTokens: 1600 });
     await saveContent(user.id, project_id, 'optin_page', optin);
     res.json({ success: true, optin });
   } catch (err) {
@@ -821,7 +880,7 @@ app.post('/api/solo/bridge', async (req, res) => {
     const compactBonuses = (bonuses || []).map(compactBonusForPrompt);
     const compactLeadMagnet = compactLeadMagnetForPrompt(lead_magnet);
     const compactStack = compactStackForPrompt(bonus_stack);
-    const bridge = await askJson(`Generate the bridge page.
+    const prompt = `Generate the bridge page.
 
 Offer analysis:
 ${JSON.stringify(compactAnalysis)}
@@ -856,7 +915,8 @@ Return JSON:
     "offer": "",
     "link_note": ""
   }
-}`, 4200);
+}`;
+    const bridge = await trackedAskJson({ userId: user.id, projectId: project_id, action: 'bridge_page', prompt, maxTokens: 4200 });
     await saveContent(user.id, project_id, 'bridge_page', bridge);
     res.json({ success: true, bridge });
   } catch (err) {
@@ -872,7 +932,7 @@ app.post('/api/solo/emails', async (req, res) => {
     const compactAnalysis = compactAnalysisForPrompt(analysis || {});
     const compactBonuses = (bonuses || []).map(compactBonusForPrompt);
     const compactLeadMagnet = compactLeadMagnetForPrompt(lead_magnet);
-    const emails = await askJson(`Generate both segmented email sequences.
+    const prompt = `Generate both segmented email sequences.
 
 Offer analysis:
 ${JSON.stringify(compactAnalysis)}
@@ -898,7 +958,8 @@ Return JSON:
   "buyers": [
     {"day": 1, "purpose": "", "subject_lines": ["", "", ""], "body": ""}
   ]
-}`, 7600);
+}`;
+    const emails = await trackedAskJson({ userId: user.id, projectId: project_id, action: 'emails', prompt, maxTokens: 7600 });
     await saveContent(user.id, project_id, 'emails', emails);
     res.json({ success: true, emails });
   } catch (err) {
@@ -940,6 +1001,32 @@ app.get('/api/projects/:id', async (req, res) => {
   res.json({ success: true, project, content });
 });
 
+app.get('/api/usage/me', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const start = new Date();
+  start.setUTCDate(1);
+  start.setUTCHours(0, 0, 0, 0);
+  const { data, error } = await adminClient
+    .from('promolab_usage')
+    .select('*')
+    .eq('user_id', user.id)
+    .gte('created_at', start.toISOString())
+    .order('created_at', { ascending: false });
+  if (error) return res.status(400).json({ success: false, message: error.message });
+  const rows = data || [];
+  const summary = rows.reduce((acc, row) => {
+    acc.total_events += 1;
+    acc.success += row.status === 'success' ? 1 : 0;
+    acc.failed += row.status === 'failed' ? 1 : 0;
+    acc.estimated_input_tokens += row.estimated_input_tokens || 0;
+    acc.estimated_output_tokens += row.estimated_output_tokens || 0;
+    acc.by_action[row.action] = (acc.by_action[row.action] || 0) + 1;
+    return acc;
+  }, { total_events: 0, success: 0, failed: 0, estimated_input_tokens: 0, estimated_output_tokens: 0, by_action: {} });
+  res.json({ success: true, summary, recent: rows.slice(0, 25) });
+});
+
 app.delete('/api/projects/:id', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
@@ -956,6 +1043,24 @@ app.get('/api/admin/users', async (req, res) => {
   const { data: users } = await adminClient.auth.admin.listUsers();
   const { data: accessRows } = await adminClient.from('promolab_access').select('*');
   res.json({ success: true, users: users.users || [], access: accessRows || [] });
+});
+
+app.get('/api/admin/usage', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const access = await getUserAccess(user.id);
+  if (!access.is_admin) return res.status(403).json({ success: false, message: 'Admin only' });
+  const start = new Date();
+  start.setUTCDate(1);
+  start.setUTCHours(0, 0, 0, 0);
+  const { data, error } = await adminClient
+    .from('promolab_usage')
+    .select('*')
+    .gte('created_at', start.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) return res.status(400).json({ success: false, message: error.message });
+  res.json({ success: true, usage: data || [] });
 });
 
 app.post('/api/admin/access', async (req, res) => {
