@@ -216,28 +216,29 @@ function coverImage({ title, subtitle, badge, theme = 'blue', number }) {
     green: ['#10231b', '#047857', '#bbf7d0', '#ffffff']
   };
   const p = palettes[theme] || palettes.blue;
-  const titleLines = wrapText(title, 18, 4)
-    .map((line, i) => `<text x="512" y="${360 + i * 58}" text-anchor="middle" font-family="Arial" font-size="48" font-weight="900" fill="${p[3]}">${esc(line)}</text>`)
+  const titleLines = wrapText(title, 20, 4)
+    .map((line, i) => `<text x="540" y="${390 + i * 54}" text-anchor="middle" font-family="Arial" font-size="44" font-weight="900" fill="${p[3]}">${esc(line)}</text>`)
     .join('');
-  const subLines = wrapText(subtitle || 'Exclusive resource', 30, 2)
-    .map((line, i) => `<text x="512" y="${630 + i * 32}" text-anchor="middle" font-family="Arial" font-size="24" font-weight="700" fill="${p[2]}">${esc(line)}</text>`)
+  const subLines = wrapText(subtitle || 'Exclusive resource', 34, 3)
+    .map((line, i) => `<text x="540" y="${650 + i * 31}" text-anchor="middle" font-family="Arial" font-size="23" font-weight="700" fill="${p[2]}">${esc(line)}</text>`)
     .join('');
-  const num = number ? `<circle cx="306" cy="262" r="40" fill="${p[2]}"/><text x="306" y="276" text-anchor="middle" font-family="Arial" font-size="34" font-weight="900" fill="${p[0]}">${number}</text>` : '';
+  const num = number ? `<circle cx="340" cy="255" r="38" fill="${p[2]}"/><text x="340" y="268" text-anchor="middle" font-family="Arial" font-size="32" font-weight="900" fill="${p[0]}">${number}</text>` : '';
   return svgUri(`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
-<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#050816"/><stop offset="1" stop-color="#111827"/></linearGradient><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${p[0]}"/><stop offset="1" stop-color="${p[1]}"/></linearGradient><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#000" flood-opacity=".55"/></filter></defs>
-<rect width="1080" height="1080" fill="url(#bg)"/><ellipse cx="540" cy="865" rx="330" ry="60" fill="#000" opacity=".42"/>
-<g filter="url(#s)" transform="translate(78 12)"><path d="M275 160 L748 116 Q804 114 825 170 L825 790 Q805 846 748 858 L275 900 Q222 894 214 835 L214 238 Q222 180 275 160Z" fill="url(#c)"/><path d="M748 116 Q804 114 825 170 L825 790 Q805 846 748 858 L748 116Z" fill="#fff" opacity=".17"/><rect x="260" y="218" width="455" height="620" rx="24" fill="none" stroke="${p[2]}" stroke-width="7"/><text x="512" y="270" text-anchor="middle" font-family="Arial" font-size="22" font-weight="900" letter-spacing="4" fill="${p[2]}">${esc(badge || 'EXCLUSIVE BONUS')}</text>${num}<circle cx="512" cy="315" r="34" fill="${p[2]}"/><path d="M492 315 L508 331 L538 295" fill="none" stroke="${p[0]}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>${titleLines}${subLines}<text x="512" y="770" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#fff" opacity=".7">PromoLab</text></g></svg>`);
+<defs><radialGradient id="glow" cx="50%" cy="38%" r="58%"><stop offset="0" stop-color="${p[1]}" stop-opacity=".55"/><stop offset="1" stop-color="#050816" stop-opacity="1"/></radialGradient><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#050816"/><stop offset="1" stop-color="#111827"/></linearGradient><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${p[0]}"/><stop offset="1" stop-color="${p[1]}"/></linearGradient><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="30" stdDeviation="28" flood-color="#000" flood-opacity=".58"/></filter></defs>
+<rect width="1080" height="1080" fill="url(#bg)"/><rect width="1080" height="1080" fill="url(#glow)" opacity=".75"/><circle cx="180" cy="170" r="3" fill="${p[2]}" opacity=".8"/><circle cx="890" cy="220" r="4" fill="${p[2]}" opacity=".7"/><circle cx="850" cy="760" r="3" fill="#fff" opacity=".45"/><ellipse cx="540" cy="875" rx="345" ry="62" fill="#000" opacity=".44"/>
+<g filter="url(#s)"><path d="M326 150 L752 118 Q810 116 830 172 L830 792 Q808 850 750 862 L326 898 Q275 894 266 836 L266 228 Q275 170 326 150Z" fill="url(#c)"/><path d="M752 118 Q810 116 830 172 L830 792 Q808 850 750 862 L750 118Z" fill="#fff" opacity=".18"/><path d="M763 176 L763 812" stroke="#fff" stroke-width="5" opacity=".18"/><rect x="318" y="212" width="445" height="620" rx="26" fill="none" stroke="${p[2]}" stroke-width="7"/><rect x="345" y="238" width="390" height="86" rx="18" fill="#000" opacity=".2"/><text x="540" y="292" text-anchor="middle" font-family="Arial" font-size="21" font-weight="900" letter-spacing="4" fill="${p[2]}">${esc(badge || 'EXCLUSIVE BONUS')}</text>${num}<circle cx="540" cy="340" r="31" fill="${p[2]}"/><path d="M522 340 L536 354 L562 324" fill="none" stroke="${p[0]}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>${titleLines}<rect x="365" y="605" width="350" height="108" rx="18" fill="#000" opacity=".18"/>${subLines}<text x="540" y="775" text-anchor="middle" font-family="Arial" font-size="19" font-weight="700" fill="#fff" opacity=".62">Exclusive Buyer Resource</text></g></svg>`);
 }
 
 function stackImage(bonuses) {
   const items = (bonuses || []).slice(0, 3);
   const cards = items.map((b, i) => {
     const colors = [['#1e3a8a', '#f8c75a'], ['#2563eb', '#dbeafe'], ['#6d28d9', '#f0abfc']][i];
-    const x = [165, 420, 675][i];
-    const lines = wrapText(b.title, 14, 3).map((line, n) => `<text x="${x + 105}" y="${350 + n * 30}" text-anchor="middle" font-family="Arial" font-size="25" font-weight="900" fill="#fff">${esc(line)}</text>`).join('');
-    return `<g transform="rotate(${[-7, 0, 7][i]} ${x + 105} 500)"><rect x="${x}" y="245" width="210" height="345" rx="18" fill="${colors[0]}" filter="url(#s)"/><rect x="${x + 18}" y="272" width="174" height="288" rx="10" fill="none" stroke="${colors[1]}" stroke-width="5"/><text x="${x + 105}" y="312" text-anchor="middle" font-family="Arial" font-size="15" font-weight="900" fill="${colors[1]}">BONUS ${i + 1}</text>${lines}<text x="${x + 105}" y="534" text-anchor="middle" font-family="Arial" font-size="14" font-weight="700" fill="${colors[1]}">${esc(b.type)}</text></g>`;
+    const x = [130, 390, 650][i];
+    const lines = wrapText(b.title, 14, 3).map((line, n) => `<text x="${x + 105}" y="${322 + n * 28}" text-anchor="middle" font-family="Arial" font-size="23" font-weight="900" fill="#fff">${esc(line)}</text>`).join('');
+    const desc = wrapText(b.description || b.tagline || '', 32, 3).map((line, n) => `<text x="${x + 105}" y="${642 + n * 22}" text-anchor="middle" font-family="Arial" font-size="17" font-weight="700" fill="#dbeafe">${esc(line)}</text>`).join('');
+    return `<g><g transform="rotate(${[-6, 0, 6][i]} ${x + 105} 430)"><rect x="${x}" y="215" width="210" height="310" rx="18" fill="${colors[0]}" filter="url(#s)"/><rect x="${x + 18}" y="240" width="174" height="258" rx="10" fill="none" stroke="${colors[1]}" stroke-width="5"/><text x="${x + 105}" y="282" text-anchor="middle" font-family="Arial" font-size="15" font-weight="900" fill="${colors[1]}">BONUS ${i + 1}</text>${lines}<text x="${x + 105}" y="480" text-anchor="middle" font-family="Arial" font-size="14" font-weight="700" fill="${colors[1]}">${esc(b.type || '')}</text></g><rect x="${x - 20}" y="585" width="250" height="110" rx="16" fill="#0f172a" stroke="${colors[1]}" stroke-opacity=".55"/><text x="${x + 105}" y="622" text-anchor="middle" font-family="Arial" font-size="18" font-weight="900" fill="${colors[1]}">${esc(b.type || `Bonus ${i + 1}`)}</text>${desc}</g>`;
   }).join('');
-  return svgUri(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><defs><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000" flood-opacity=".55"/></filter></defs><rect width="1200" height="800" fill="#07111f"/><ellipse cx="600" cy="635" rx="460" ry="70" fill="#000" opacity=".42"/><text x="600" y="130" text-anchor="middle" font-family="Arial" font-size="50" font-weight="900" fill="#f8c75a">EXCLUSIVE BONUS PACKAGE</text><text x="600" y="178" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#dbeafe">Three buyer-only resources included with your campaign</text>${cards}</svg>`);
+  return svgUri(`<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900"><defs><radialGradient id="g" cx="50%" cy="32%" r="70%"><stop offset="0" stop-color="#1e3a8a" stop-opacity=".62"/><stop offset="1" stop-color="#07111f"/></radialGradient><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000" flood-opacity=".55"/></filter></defs><rect width="1400" height="900" fill="url(#g)"/><circle cx="230" cy="170" r="4" fill="#f8c75a" opacity=".8"/><circle cx="1120" cy="220" r="5" fill="#dbeafe" opacity=".6"/><circle cx="1030" cy="740" r="3" fill="#f8c75a" opacity=".75"/><ellipse cx="650" cy="560" rx="520" ry="70" fill="#000" opacity=".35"/><text x="650" y="105" text-anchor="middle" font-family="Arial" font-size="50" font-weight="900" fill="#f8c75a">EXCLUSIVE BONUS PACKAGE</text><text x="650" y="150" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#dbeafe">Three buyer-only resources that make the main offer easier to use</text><g transform="translate(120 0)">${cards}</g></svg>`);
 }
 
 function p(text, opts = {}) {
@@ -308,7 +309,6 @@ function contentToDoc(title, subtitle, type, content) {
   });
 
   children.push(divider());
-  children.push(p('PromoLab by Jimmy Griffith, JGAffiliate', { center: true, size: 18, color: '999999' }));
   return children;
 }
 
@@ -717,8 +717,8 @@ Bonuses:
 ${JSON.stringify(bonuses || [])}
 
 Rules:
-- Non-buyers sequence has 4 days: thank you/delivery, story-solution, offer/bonuses, final push.
-- Buyers sequence has 4 days: welcome/bonus delivery, advanced tip, related solution, demo/benefits.
+- Non-buyers sequence has 5 days: thank you/delivery, story-solution, value lesson, offer/bonuses, final push.
+- Buyers sequence has 7 days: welcome/bonus delivery, quick win, advanced tip, success mindset, related solution intro, related solution benefits, final next-step invitation.
 - Every email needs 3 subject lines.
 - Write full body copy.
 - Use [FirstName], [YourAffiliateLink], and [YourName] where useful.
