@@ -262,7 +262,7 @@ async function analyzeUrl(){
   var btn = document.getElementById('analyze-btn');
   btn.disabled=true; btn.textContent='Analyzing...';
   try {
-    var res = await fetch('/api/analyze',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    var res = await fetch('/api/analyze',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})});
     var data = await res.json();
     if(data.success){
       state.analysis = data.analysis;
@@ -354,15 +354,17 @@ function pickAngle(key){
 
 async function confirmAngle(){
   if(!state.selectedAngle){ alert('Please select an angle.'); return; }
-  var res = await fetch('/api/projects',{method:'POST',credentials:'include',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      name: state.analysis.product_name, url: document.getElementById('url-input').value.trim(),
-      analysis: state.analysis, angle: state.selectedAngle, channel: state.selectedChannel
-    })
-  });
-  var data = await res.json();
-  if(data.success){ state.projectId = data.project.id; }
+  try {
+    var res = await fetch('/api/projects',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        name: state.analysis.product_name, url: document.getElementById('url-input').value.trim(),
+        analysis: state.analysis, angle: state.selectedAngle, channel: state.selectedChannel
+      })
+    });
+    var data = await res.json();
+    if(data.success){ state.projectId = data.project.id; }
+  } catch(e){ console.log('Project save failed:', e.message); }
   document.getElementById('angle-card').style.display='none';
   document.getElementById('creation-card').style.display='block';
   document.getElementById('active-angle-badge').textContent = state.selectedAngle;
@@ -428,7 +430,7 @@ function skipAndBuild(key){
 
 // ── Bonus builder ─────────────────────────────────────────────
 async function buildBonuses(){
-  showLoading('Building your bonus stack with cover images... This takes about 30 seconds.');
+  showLoading('Building your bonus stack with cover images... This takes about 60 seconds.');
   try {
     var res = await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',
       headers:{'Content-Type':'application/json'},
@@ -439,35 +441,48 @@ async function buildBonuses(){
       state.bonuses = data.bonuses;
       renderBonuses(data.bonuses);
       renderActionMenu();
-    } else { showOutputError(data.message); }
-  } catch(e){ showOutputError('Error: ' + e.message); }
+    } else {
+      showOutputError(data.message || 'Bonus generation failed.');
+    }
+  } catch(e){
+    showOutputError('Request failed: ' + e.message);
+  }
 }
 
 function renderBonuses(bonuses){
   var html = '<div class="card solo">'+
     '<div class="section-label">Bonus stack <button class="regen-btn" onclick="buildBonuses()">Regenerate</button></div>';
+
   bonuses.forEach(function(b){
-    var coverHtml = b.cover_image
-      ? '<img src="'+b.cover_image+'" class="bonus-cover" alt="Bonus cover">'
-      : '<div style="width:160px;height:160px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;text-align:center;padding:12px;margin-bottom:10px;">'+esc(b.title)+'</div>';
-    html += '<div class="bonus-card">'+
-      '<div class="bonus-header">'+
-      '<div class="bonus-num">'+b.number+'</div>'+
-      '<div style="flex:1"><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>'+
-      '<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; Download</button>'+
-      '</div>'+
-      coverHtml+
-      '<div class="output-label">Description <button class="copy-btn" onclick="copyText(\''+descId+'\',this)">Copy</button></div>'+
-'<div class="output-box" id="'+descId+'">'+esc(b.description)+'</div>'+
-'<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\''+contId+'\',this)">Copy</button></div>'+
-'<div class="output-box" id="'+contId+'">'+esc(b.full_content)+'</div>'+
-      '</div>';
+    var descId = 'bdesc' + b.number;
+    var contId = 'bcont' + b.number;
+
+    var coverHtml;
+    if(b.cover_image){
+      coverHtml = '<img src="'+b.cover_image+'" class="bonus-cover" alt="Bonus cover">';
+    } else {
+      coverHtml = '<div style="width:160px;height:160px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;text-align:center;padding:12px;margin-bottom:10px;">'+esc(b.title)+'</div>';
+    }
+
+    html += '<div class="bonus-card">';
+    html += '<div class="bonus-header">';
+    html += '<div class="bonus-num">'+b.number+'</div>';
+    html += '<div style="flex:1"><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>';
+    html += '<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; Download</button>';
+    html += '</div>';
+    html += coverHtml;
+    html += '<div class="output-label">Description <button class="copy-btn" onclick="copyText(\''+descId+'\',this)">Copy</button></div>';
+    html += '<div class="output-box" id="'+descId+'">'+esc(b.description)+'</div>';
+    html += '<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\''+contId+'\',this)">Copy</button></div>';
+    html += '<div class="output-box" id="'+contId+'">'+esc(b.full_content)+'</div>';
+    html += '</div>';
   });
-  // Add download all button at bottom
-  html += '<div style="display:flex;gap:8px;margin-top:4px">'+
-    '<button class="btn btn-full" onclick="downloadAllBonuses()">&#8595; Download all 3 bonuses</button>'+
-    '</div>';
+
+  html += '<div style="display:flex;gap:8px;margin-top:4px">';
+  html += '<button class="btn btn-full" onclick="downloadAllBonuses()">&#8595; Download all 3 bonuses</button>';
   html += '</div>';
+  html += '</div>';
+
   document.getElementById('content-output-area').innerHTML = html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
 }
@@ -509,7 +524,7 @@ async function downloadBonus(num){
     var res = await fetch('/api/download/bonus',{
       method:'POST', credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({bonus, product_name:state.analysis?state.analysis.product_name:'this offer'})
+      body:JSON.stringify({bonus:bonus, product_name:state.analysis?state.analysis.product_name:'this offer'})
     });
     if(res.ok){
       var blob = await res.blob();
@@ -523,7 +538,6 @@ async function downloadBonus(num){
   } catch(e){ alert('Download error: '+e.message); }
 }
 
-
 // ── Opt-in builder ────────────────────────────────────────────
 async function buildOptin(){
   showLoading('Writing your opt-in page with A/B headline variations...');
@@ -534,21 +548,24 @@ async function buildOptin(){
     });
     var data = await res.json();
     if(data.success){ renderOptin(data.content); }
-    else { showOutputError(data.message); }
-  } catch(e){ showOutputError('Network error. Please try again.'); }
+    else { showOutputError(data.message || 'Opt-in generation failed.'); }
+  } catch(e){ showOutputError('Request failed: ' + e.message); }
 }
 
 function renderOptin(c){
+  var haId = 'optin_ha';
+  var hbId = 'optin_hb';
+  var subId = 'optin_sub';
   var html = '<div class="card solo">'+
     '<div class="section-label">Opt-in page <button class="regen-btn" onclick="buildOptin()">Regenerate</button></div>'+
     '<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note||'')+'</div>'+
     '<div class="section-label" style="border:none;padding:0;margin-bottom:8px">A/B headline split test</div>'+
     '<div class="ab-grid">'+
-    '<div class="ab-card"><div class="ab-label">Version A <button class="copy-btn" onclick="copyText(\'ha\',this)">Copy</button></div><div class="ab-text" id="ha">'+esc(c.headline_a)+'</div></div>'+
-    '<div class="ab-card"><div class="ab-label">Version B <button class="copy-btn" onclick="copyText(\'hb\',this)">Copy</button></div><div class="ab-text" id="hb">'+esc(c.headline_b)+'</div></div>'+
+    '<div class="ab-card"><div class="ab-label">Version A <button class="copy-btn" onclick="copyText(\''+haId+'\',this)">Copy</button></div><div class="ab-text" id="'+haId+'">'+esc(c.headline_a)+'</div></div>'+
+    '<div class="ab-card"><div class="ab-label">Version B <button class="copy-btn" onclick="copyText(\''+hbId+'\',this)">Copy</button></div><div class="ab-text" id="'+hbId+'">'+esc(c.headline_b)+'</div></div>'+
     '</div>'+
-    '<div class="output-label">Subheadline <button class="copy-btn" onclick="copyText(\'osub\',this)">Copy</button></div>'+
-    '<div class="output-box" id="osub">'+esc(c.subheadline)+'</div>'+
+    '<div class="output-label">Subheadline <button class="copy-btn" onclick="copyText(\''+subId+'\',this)">Copy</button></div>'+
+    '<div class="output-box" id="'+subId+'">'+esc(c.subheadline)+'</div>'+
     '<div class="output-label" style="margin-top:8px">CTA button text</div>'+
     '<div class="output-box">'+esc(c.cta_button)+'</div>'+
     '<div class="output-label" style="margin-top:8px">Form fields</div>'+
@@ -585,22 +602,24 @@ async function buildBridgeFormat(format){
   try {
     var res = await fetch('/api/generate/bridge',{method:'POST',credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, format, bonuses:state.bonuses, project_id:state.projectId})
+      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, format:format, bonuses:state.bonuses, project_id:state.projectId})
     });
     var data = await res.json();
     if(data.success){ renderBridge(data.content, format); }
-    else { showOutputError(data.message); }
-  } catch(e){ showOutputError('Network error. Please try again.'); }
+    else { showOutputError(data.message || 'Bridge generation failed.'); }
+  } catch(e){ showOutputError('Request failed: ' + e.message); }
 }
 
 function renderBridge(c, format){
+  var bhId = 'bridge_headline';
+  var bcId = 'bridge_content';
   var html = '<div class="card solo">'+
     '<div class="section-label">Bridge page — '+format+' <button class="regen-btn" onclick="buildBridge()">Change format</button></div>'+
     (c.above_fold_note?'<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note)+'</div>':'')+
-    '<div class="output-label">Headline <button class="copy-btn" onclick="copyText(\'bh\',this)">Copy</button></div>'+
-    '<div class="output-box" id="bh">'+esc(c.headline)+'</div>'+
-    '<div class="output-label" style="margin-top:8px">Content <button class="copy-btn" onclick="copyText(\'bc\',this)">Copy</button></div>'+
-    '<div class="output-box" id="bc">'+esc(c.content)+'</div>'+
+    '<div class="output-label">Headline <button class="copy-btn" onclick="copyText(\''+bhId+'\',this)">Copy</button></div>'+
+    '<div class="output-box" id="'+bhId+'">'+esc(c.headline)+'</div>'+
+    '<div class="output-label" style="margin-top:8px">Content <button class="copy-btn" onclick="copyText(\''+bcId+'\',this)">Copy</button></div>'+
+    '<div class="output-box" id="'+bcId+'">'+esc(c.content)+'</div>'+
     '<div class="output-label" style="margin-top:8px">CTA button</div>'+
     '<div class="output-box">'+esc(c.cta_text)+'</div>'+
     '</div>';
@@ -618,8 +637,8 @@ async function buildEmails(type){
     });
     var data = await res.json();
     if(data.success){ renderEmails(data.emails, type); }
-    else { showOutputError(data.message); }
-  } catch(e){ showOutputError('Network error. Please try again.'); }
+    else { showOutputError(data.message || 'Email generation failed.'); }
+  } catch(e){ showOutputError('Request failed: ' + e.message); }
 }
 
 function renderEmails(emails, type){
@@ -627,19 +646,20 @@ function renderEmails(emails, type){
   var html = '<div class="card solo">'+
     '<div class="section-label">'+title+' <button class="regen-btn" onclick="buildEmails(\''+type+'\')">Regenerate</button></div>';
   emails.forEach(function(e){
-    html += '<div class="email-card">'+
-      '<div class="email-day">Day '+e.day+'</div>'+
-      '<div class="output-label">Subject line options (pick one)</div>'+
-      '<div class="subject-options">'+
-      (e.subject_lines||[]).map(function(s,i){
-        var sid='sub'+e.day+'_'+i;
-        return '<div class="subject-opt"><span id="'+sid+'">'+esc(s)+'</span>'+
-          '<button class="copy-btn" onclick="copyText(\''+sid+'\',this)">Copy</button></div>';
-      }).join('')+
-      '</div>'+
-      '<div class="output-label">Email body <button class="copy-btn" onclick="copyText(\'eb'+e.day+'\',this)">Copy</button></div>'+
-      '<div class="output-box" id="eb'+e.day+'">'+esc(e.body)+'</div>'+
-      '</div>';
+    var bodyId = 'email_body_'+e.day;
+    html += '<div class="email-card">';
+    html += '<div class="email-day">Day '+e.day+'</div>';
+    html += '<div class="output-label">Subject line options (pick one)</div>';
+    html += '<div class="subject-options">';
+    (e.subject_lines||[]).forEach(function(s,i){
+      var sid = 'sub_'+type+'_'+e.day+'_'+i;
+      html += '<div class="subject-opt"><span id="'+sid+'">'+esc(s)+'</span>'+
+        '<button class="copy-btn" onclick="copyText(\''+sid+'\',this)">Copy</button></div>';
+    });
+    html += '</div>';
+    html += '<div class="output-label">Email body <button class="copy-btn" onclick="copyText(\''+bodyId+'\',this)">Copy</button></div>';
+    html += '<div class="output-box" id="'+bodyId+'">'+esc(e.body)+'</div>';
+    html += '</div>';
   });
   html += '</div>';
   document.getElementById('content-output-area').innerHTML = html;
@@ -648,7 +668,7 @@ function renderEmails(emails, type){
 
 // ── Full funnel ───────────────────────────────────────────────
 async function buildFullFunnel(){
-  showLoading('Building your complete funnel — bonuses, opt-in, bridge, and both email sequences...');
+  showLoading('Building your complete funnel — bonuses, opt-in, bridge, and both email sequences. This takes 2-3 minutes...');
   try {
     var bonusRes = await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})});
     var bonusData = await bonusRes.json();
@@ -669,17 +689,13 @@ async function buildFullFunnel(){
     var area = document.getElementById('content-output-area');
     area.innerHTML = '<div class="alert alert-success card solo">Full funnel built! Scroll down to see each section.</div>';
     if(bonusData.success) renderBonuses(bonusData.bonuses);
-    if(optinData.success){
-      var d=document.createElement('div'); d.innerHTML=''; area.appendChild(d);
-      var old=document.getElementById('content-output-area');
-      document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getOptinHtml(optinData.content));
-    }
-    if(bridgeData.success) document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getBridgeHtml(bridgeData.content,'text'));
-    if(nbData.success) document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getEmailsHtml(nbData.emails,'non_buyers'));
-    if(bData.success) document.getElementById('content-output-area').insertAdjacentHTML('beforeend', getEmailsHtml(bData.emails,'buyers'));
+    if(optinData.success) area.insertAdjacentHTML('beforeend', getOptinHtml(optinData.content));
+    if(bridgeData.success) area.insertAdjacentHTML('beforeend', getBridgeHtml(bridgeData.content,'text'));
+    if(nbData.success) area.insertAdjacentHTML('beforeend', getEmailsHtml(nbData.emails,'non_buyers'));
+    if(bData.success) area.insertAdjacentHTML('beforeend', getEmailsHtml(bData.emails,'buyers'));
     renderActionMenu();
     area.scrollIntoView({behavior:'smooth'});
-  } catch(e){ showOutputError('Network error. Please try again.'); }
+  } catch(e){ showOutputError('Full funnel failed: ' + e.message); }
 }
 
 function getOptinHtml(c){
@@ -715,49 +731,57 @@ function getEmailsHtml(emails,type){
 // ── Projects ──────────────────────────────────────────────────
 async function loadProjects(){
   document.getElementById('projects-container').innerHTML='<div class="loading-state"><div class="spin"></div><br>Loading...</div>';
-  var res = await fetch('/api/projects',{credentials:'include'});
-  var data = await res.json();
-  if(!data.success||data.projects.length===0){
-    document.getElementById('proj-count').textContent='';
-    document.getElementById('projects-container').innerHTML='<div style="color:#888;font-size:13px;padding:16px 0">No projects yet. Analyze a URL to start your first one.</div>';
-    return;
+  try {
+    var res = await fetch('/api/projects',{credentials:'include'});
+    var data = await res.json();
+    if(!data.success||data.projects.length===0){
+      document.getElementById('proj-count').textContent='';
+      document.getElementById('projects-container').innerHTML='<div style="color:#888;font-size:13px;padding:16px 0">No projects yet. Analyze a URL to start your first one.</div>';
+      return;
+    }
+    document.getElementById('proj-count').textContent=data.projects.length+' project'+(data.projects.length===1?'':'s');
+    document.getElementById('projects-container').innerHTML='<div class="projects-list">'+
+      data.projects.map(function(p){
+        return '<div class="project-row" onclick="loadProject(\''+p.id+'\')">'+
+          '<div style="flex:1">'+
+          '<div class="project-name">'+esc(p.name)+'</div>'+
+          '<div class="project-meta">'+esc(p.channel.replace('_',' '))+' &bull; '+new Date(p.created_at).toLocaleDateString()+'</div>'+
+          '<div style="margin-top:3px"><span class="project-badge">'+esc(p.angle||'')+'</span></div>'+
+          '</div>'+
+          '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();deleteProject(\''+p.id+'\')">Delete</button>'+
+          '</div>';
+      }).join('')+
+      '</div>';
+  } catch(e){
+    document.getElementById('projects-container').innerHTML='<div class="alert alert-error">Failed to load projects.</div>';
   }
-  document.getElementById('proj-count').textContent=data.projects.length+' project'+(data.projects.length===1?'':'s');
-  document.getElementById('projects-container').innerHTML='<div class="projects-list">'+
-    data.projects.map(function(p){
-      return '<div class="project-row" onclick="loadProject(\''+p.id+'\')">'+
-        '<div style="flex:1">'+
-        '<div class="project-name">'+esc(p.name)+'</div>'+
-        '<div class="project-meta">'+esc(p.channel.replace('_',' '))+' &bull; '+new Date(p.created_at).toLocaleDateString()+'</div>'+
-        '<div style="margin-top:3px"><span class="project-badge">'+esc(p.angle||'')+'</span></div>'+
-        '</div>'+
-        '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();deleteProject(\''+p.id+'\')">Delete</button>'+
-        '</div>';
-    }).join('')+
-    '</div>';
 }
 
 async function loadProject(id){
   showMainTab('workspace');
-  var res = await fetch('/api/projects/'+id,{credentials:'include'});
-  var data = await res.json();
-  if(!data.success) return;
-  var p = data.project;
-  state.analysis = JSON.parse(p.analysis||'{}');
-  state.selectedAngle = p.angle;
-  state.selectedChannel = p.channel;
-  state.projectId = p.id;
-  state.bonuses = (data.content.bonus_stack)||[];
-  document.getElementById('url-input').value = p.url||'';
-  renderSummary(state.analysis);
-  document.getElementById('summary-card').style.display='block';
-  document.getElementById('channel-card').style.display='block';
-  renderChannels();
-  document.getElementById('angle-card').style.display='none';
-  document.getElementById('creation-card').style.display='block';
-  document.getElementById('active-angle-badge').textContent = state.selectedAngle;
-  renderActionMenu();
-  document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-success">Project loaded. Choose what to create from the menu above.</div></div>';
+  try {
+    var res = await fetch('/api/projects/'+id,{credentials:'include'});
+    var data = await res.json();
+    if(!data.success) return;
+    var p = data.project;
+    state.analysis = JSON.parse(p.analysis||'{}');
+    state.selectedAngle = p.angle;
+    state.selectedChannel = p.channel;
+    state.projectId = p.id;
+    state.bonuses = (data.content.bonus_stack)||[];
+    document.getElementById('url-input').value = p.url||'';
+    renderSummary(state.analysis);
+    document.getElementById('summary-card').style.display='block';
+    document.getElementById('channel-card').style.display='block';
+    renderChannels();
+    document.getElementById('angle-card').style.display='none';
+    document.getElementById('creation-card').style.display='block';
+    document.getElementById('active-angle-badge').textContent = state.selectedAngle;
+    renderActionMenu();
+    document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-success">Project loaded. Choose what to create from the menu above.</div></div>';
+  } catch(e){
+    showOutputError('Failed to load project.');
+  }
 }
 
 async function deleteProject(id){
@@ -793,8 +817,8 @@ function copyText(id,btn){
 }
 
 function esc(s){
-  if(!s) return '';
-  var d=document.createElement('div'); d.textContent=s; return d.innerHTML;
+  if(s===null||s===undefined) return '';
+  var d=document.createElement('div'); d.textContent=String(s); return d.innerHTML;
 }
 
 init();
