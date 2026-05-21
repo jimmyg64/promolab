@@ -1,3 +1,4 @@
+Promolab / Server.js
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -6,35 +7,28 @@ const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk');
 const fetch = require('node-fetch');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, ShadingType } = require('docx');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 const adminClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 const publicClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
 // ── Knowledge base ────────────────────────────────────────────
 const SOLO_ADS_KB = `
 You are the Solo Ads Funnel Architect, an expert copywriter and funnel strategist specializing in cold traffic and the Make Money Online (MMO) niche.
-
 GLOBAL WRITING RULES:
 - Action-Driven & Angle-Based: Every piece of copy drives a specific action. Do not overcomplicate.
 - Cold MMO Traffic Mindset: The audience is cold, skeptical, and has likely tried and failed before. Hooks must be punchy, curiosity-driven, and benefit-heavy.
 - Voice: Relatable, conversational, direct. Write like a helpful friend, not a salesperson.
 - No hallucinations. No fluff. No filler sentences. Every sentence must earn its place.
 - Use short paragraphs. Use white space. Make content easy to scan and read.
-
 THE THREE ANGLES:
 1. Consultative/Pathfinder: Best for overwhelmed audiences. Position offer as the most logical, clear path.
 2. Pain & Agitation: Best for audiences stuck using outdated/broken methods. Focus on frustration and present offer as instant relief.
 3. Pure Value & Bonus: Best for highly competitive offers. Stack immense value alongside custom gap-filling bonuses.
-
 BONUS & LEAD MAGNET CONTENT RULES:
 - Content must be genuinely valuable — not filler, not vague advice
 - Use clear headers, numbered steps, bullet points, real examples
@@ -43,7 +37,6 @@ BONUS & LEAD MAGNET CONTENT RULES:
 - Format for readability: short paragraphs, white space, scannable structure
 - These are standalone deliverables — they must feel premium and complete
 `;
-
 // ── Auth helpers ──────────────────────────────────────────────
 function cookieOptions() {
   return { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60*60*24*7*1000, path: '/' };
@@ -67,45 +60,112 @@ async function getUserAccess(userId) {
   const { data } = await adminClient.from('promolab_access').select('*').eq('user_id', userId).single();
   return data || { solo_ads: false, facebook: false, email_sequence: false, launchjacking: false, affiliate_launch_guide: false };
 }
-
 // ── DALL-E 3 image generation ─────────────────────────────────
-async function generateImage(prompt) {
-  if (process.env.OPENAI_API_KEY) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 35000);
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST', signal: ctrl.signal,
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY },
-        body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', response_format: 'b64_json' })
-      });
-      clearTimeout(timer);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && data.data[0] && data.data[0].b64_json) return 'data:image/png;base64,' + data.data[0].b64_json;
-      } else { console.log('DALL-E error:', response.status, await response.text()); }
-    } catch(e) { console.log('DALL-E failed:', e.message); }
+function xmlEscape(value) {
+  return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function wrapSvgText(value, maxChars, maxLines) {
+  const words = String(value || '').replace(/\s+/g, ' ').trim().split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? line + ' ' + word : word;
+    if (next.length > maxChars && line) { lines.push(line); line = word; } else { line = next; }
+    if (lines.length === maxLines) break;
   }
-  // Fallback Stability AI
-  if (process.env.STABILITY_API_KEY) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 25000);
-      const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
-        method: 'POST', signal: ctrl.signal,
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.STABILITY_API_KEY, 'Accept': 'application/json' },
-        body: JSON.stringify({ text_prompts: [{ text: prompt, weight: 1 }, { text: 'blurry, low quality, people, faces, watermark', weight: -1 }], cfg_scale: 7, height: 1024, width: 1024, samples: 1, steps: 25 })
-      });
-      clearTimeout(timer);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.artifacts && data.artifacts[0]) return 'data:image/png;base64,' + data.artifacts[0].base64;
-      }
-    } catch(e) { console.log('Stability failed:', e.message); }
+  if (line && lines.length < maxLines) lines.push(line);
+  return lines.length ? lines : ['PromoLab'];
+}
+function svgDataUri(svg) {
+  return 'data:image/svg+xml;base64,' + Buffer.from(svg, 'utf8').toString('base64');
+}
+function makePremiumCover({ title, subtitle, badge, theme, number }) {
+  const palettes = {
+    gold: ['#0f172a', '#1e3a8a', '#f8c75a', '#fff7d6'],
+    blue: ['#111827', '#2563eb', '#dbeafe', '#ffffff'],
+    purple: ['#1e1235', '#6d28d9', '#f0abfc', '#ffffff'],
+    green: ['#10231b', '#047857', '#bbf7d0', '#ffffff']
+  };
+  const p = palettes[theme] || palettes.gold;
+  const titleLines = wrapSvgText(title, 18, 4);
+  const subLines = wrapSvgText(subtitle || 'Exclusive affiliate resource', 28, 2);
+  const titleSvg = titleLines.map((line, i) => `<text x="512" y="${360 + i * 56}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="900" fill="${p[3]}">${xmlEscape(line)}</text>`).join('');
+  const subSvg = subLines.map((line, i) => `<text x="512" y="${620 + i * 30}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="${p[2]}">${xmlEscape(line)}</text>`).join('');
+  const num = number ? `<circle cx="262" cy="246" r="42" fill="${p[2]}"/><text x="262" y="260" text-anchor="middle" font-family="Arial" font-size="34" font-weight="900" fill="${p[0]}">${number}</text>` : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#050816"/><stop offset="1" stop-color="#111827"/></linearGradient><linearGradient id="cover" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${p[0]}"/><stop offset="1" stop-color="${p[1]}"/></linearGradient><filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#000" flood-opacity="0.55"/></filter></defs>
+<rect width="1024" height="1024" fill="url(#bg)"/><ellipse cx="520" cy="820" rx="310" ry="54" fill="#000" opacity="0.42"/>
+<g filter="url(#shadow)" transform="translate(70 10)"><path d="M264 158 L728 116 Q780 112 800 166 L800 760 Q782 812 728 822 L264 864 Q214 860 206 804 L206 230 Q214 178 264 158Z" fill="url(#cover)"/><path d="M728 116 Q780 112 800 166 L800 760 Q782 812 728 822 L728 116Z" fill="#ffffff" opacity="0.18"/><path d="M735 168 L735 776" stroke="#ffffff" stroke-width="5" opacity="0.22"/><rect x="246" y="206" width="438" height="608" rx="24" fill="none" stroke="${p[2]}" stroke-width="7"/><text x="512" y="258" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="900" letter-spacing="4" fill="${p[2]}">${xmlEscape(badge || 'EXCLUSIVE BONUS')}</text>${num}<circle cx="512" cy="300" r="34" fill="${p[2]}" opacity="0.95"/><path d="M492 300 L508 316 L536 280" fill="none" stroke="${p[0]}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>${titleSvg}${subSvg}<text x="512" y="744" text-anchor="middle" font-family="Arial" font-size="21" font-weight="700" fill="#ffffff" opacity="0.72">PromoLab</text></g></svg>`;
+  return svgDataUri(svg);
+}
+function makeStackMockup(bonuses) {
+  const items = (bonuses || []).slice(0, 3);
+  const covers = items.map((b, i) => {
+    const themes = ['gold', 'blue', 'purple'];
+    const x = [160, 400, 640][i];
+    const colors = { gold: ['#1e3a8a', '#f8c75a'], blue: ['#2563eb', '#dbeafe'], purple: ['#6d28d9', '#f0abfc'] }[themes[i]];
+    const lines = wrapSvgText(b.title, 13, 3).map((line, n) => `<text x="${x + 100}" y="${355 + n * 28}" text-anchor="middle" font-family="Arial" font-size="24" font-weight="900" fill="#fff">${xmlEscape(line)}</text>`).join('');
+    return `<g transform="rotate(${[-6, 0, 6][i]} ${x + 100} 500)"><rect x="${x}" y="250" width="200" height="330" rx="18" fill="${colors[0]}" filter="url(#shadow)"/><rect x="${x + 18}" y="275" width="164" height="280" rx="10" fill="none" stroke="${colors[1]}" stroke-width="5"/><text x="${x + 100}" y="315" text-anchor="middle" font-family="Arial" font-size="15" font-weight="900" fill="${colors[1]}">BONUS ${i + 1}</text>${lines}<text x="${x + 100}" y="530" text-anchor="middle" font-family="Arial" font-size="14" font-weight="700" fill="${colors[1]}">${xmlEscape(b.type || 'Resource')}</text></g>`;
+  }).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><defs><filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000" flood-opacity="0.55"/></filter></defs><rect width="1200" height="800" fill="#07111f"/><ellipse cx="600" cy="620" rx="440" ry="64" fill="#000" opacity="0.42"/><text x="600" y="130" text-anchor="middle" font-family="Arial" font-size="48" font-weight="900" fill="#f8c75a">EXCLUSIVE BONUS PACKAGE</text><text x="600" y="175" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#dbeafe">Three buyer-only resources included with your campaign</text>${covers}</svg>`;
+  return svgDataUri(svg);
+}
+async function generateImage(prompt, asset = {}) {
+  if (asset.kind === 'stack') return makeStackMockup(asset.bonuses || []);
+  return makePremiumCover(asset);
+}
+function extractJson(text) {
+  const raw = String(text || '').replace(/```json|```/g, '').trim();
+  try { return JSON.parse(raw); } catch {}
+  const firstObj = raw.indexOf('{');
+  const lastObj = raw.lastIndexOf('}');
+  const firstArr = raw.indexOf('[');
+  const lastArr = raw.lastIndexOf(']');
+  const isArray = firstArr !== -1 && (firstObj === -1 || firstArr < firstObj);
+  const start = isArray ? firstArr : firstObj;
+  const end = isArray ? lastArr : lastObj;
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(raw.slice(start, end + 1)); } catch {}
   }
   return null;
 }
+async function repairJson(text, instruction) {
+  const repair = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 6000,
+    messages: [{
+      role: 'user',
+      content: `Fix this into valid JSON only. No markdown, no comments, no explanation.
+${instruction}
 
+Broken output:
+${text}`
+    }]
+  });
+  return extractJson(repair.content[0].text);
+}
+function normalizeBonus(bonus, index) {
+  const content = String(bonus.full_content || '').trim();
+  return {
+    number: Number(bonus.number || index + 1),
+    title: String(bonus.title || `Bonus ${index + 1}`).trim(),
+    type: String(bonus.type || ['1-Page Checklist', '2-Page Guide', 'AI Prompt Pack'][index] || 'Buyer Bonus').trim(),
+    tagline: String(bonus.tagline || '').trim(),
+    description: String(bonus.description || '').trim(),
+    full_content: content,
+    cover_prompt: String(bonus.cover_prompt || '').trim()
+  };
+}
+function validateBonuses(bonuses) {
+  if (!Array.isArray(bonuses) || bonuses.length !== 3) return 'Expected exactly 3 bonuses.';
+  for (let i = 0; i < bonuses.length; i++) {
+    const b = bonuses[i] || {};
+    if (!b.title || !b.type || !b.description || !b.full_content) return `Bonus ${i + 1} is missing required fields.`;
+    if (String(b.full_content).split(/\s+/).filter(Boolean).length < 250) return `Bonus ${i + 1} content is too short.`;
+    if (i === 2 && !/prompt/i.test(String(b.full_content))) return 'Bonus 3 must contain complete AI prompts.';
+  }
+  return null;
+}
 // ── DOCX builder helpers ──────────────────────────────────────
 function makeParagraph(text, opts = {}) {
   return new Paragraph({
@@ -121,7 +181,6 @@ function makeParagraph(text, opts = {}) {
     })]
   });
 }
-
 function makeHeading(text, level = 1) {
   const sizes = { 1: 40, 2: 32, 3: 28 };
   const colors = { 1: '1A1A2E', 2: '4F46B8', 3: '333333' };
@@ -131,7 +190,6 @@ function makeHeading(text, level = 1) {
     children: [new TextRun({ text, bold: true, size: sizes[level] || 28, color: colors[level] || '1A1A2E', font: 'Calibri' })]
   });
 }
-
 function makeBullet(text) {
   return new Paragraph({
     bullet: { level: 0 },
@@ -139,7 +197,6 @@ function makeBullet(text) {
     children: [new TextRun({ text, size: 24, color: '333333', font: 'Calibri' })]
   });
 }
-
 function makeDivider() {
   return new Paragraph({
     spacing: { before: 200, after: 200 },
@@ -147,7 +204,6 @@ function makeDivider() {
     children: []
   });
 }
-
 function makeCoverPage(title, subtitle, type, productName) {
   return [
     new Paragraph({ spacing: { before: 800, after: 200 }, alignment: AlignmentType.CENTER,
@@ -164,7 +220,6 @@ function makeCoverPage(title, subtitle, type, productName) {
     new Paragraph({ pageBreakBefore: true, children: [] })
   ];
 }
-
 function cleanMarkdownLine(line) {
   return line
     .replace(/^#{1,6}\s+/, '')         // strip # headers (handled separately)
@@ -174,11 +229,9 @@ function cleanMarkdownLine(line) {
     .replace(/^[-*+]\s+/, '')           // strip bullet markers (handled separately)
     .trim();
 }
-
 function parseContentToDocx(content, productName, title, subtitle, type) {
   const children = [];
   children.push(...makeCoverPage(title, subtitle, type, productName));
-
   const lines = content.split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
@@ -203,12 +256,10 @@ function parseContentToDocx(content, productName, title, subtitle, type) {
       if (clean) children.push(makeParagraph(clean, { spaceBefore: 80, spaceAfter: 80 }));
     }
   }
-
   children.push(makeDivider());
   children.push(makeParagraph('© 2026 PromoLab · Jimmy Griffith, JGAffiliate · All rights reserved', { center: true, size: 18, color: 'AAAAAA', spaceBefore: 200 }));
   return children;
 }
-
 // ── DOCX route helper ─────────────────────────────────────────
 async function buildAndSendDocx(res, children, filename) {
   const doc = new Document({
@@ -224,7 +275,6 @@ async function buildAndSendDocx(res, children, filename) {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(buffer);
 }
-
 // ── Page routes ───────────────────────────────────────────────
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
@@ -243,7 +293,6 @@ app.get('/admin.html', async (req, res) => {
   if (!profile || !profile.is_admin) return res.redirect('/app.html');
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
-
 // ── Auth routes ───────────────────────────────────────────────
 app.post('/signup', async (req, res) => {
   const { email, password } = req.body;
@@ -278,7 +327,6 @@ app.get('/me', async (req, res) => {
   const access = await getUserAccess(user.id);
   res.json({ success: true, user: { id: user.id, email: user.email, email_confirmed: !!user.email_confirmed_at }, access });
 });
-
 // ── ANALYZE ───────────────────────────────────────────────────
 app.post('/api/analyze', async (req, res) => {
   const user = await requireUser(req, res);
@@ -292,7 +340,6 @@ app.post('/api/analyze', async (req, res) => {
       const html = await r.text();
       pageText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 8000);
     } catch { pageText = 'Could not fetch page. Analyze based on URL context.'; }
-
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 2000,
       messages: [{ role: 'user', content: `Analyze this affiliate sales page deeply. Return ONLY valid JSON, no text before or after:
@@ -315,13 +362,11 @@ app.post('/api/analyze', async (req, res) => {
 }
 Page: ${pageText}` }]
     });
-    let parsed;
-    try { parsed = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch { parsed = { product_name:'Affiliate product', price:'See page', commission:'See page', niche:'Make Money Online', target_audience:'Beginner affiliate marketers', main_pain_point:'Not making money online despite trying', secondary_pain_points:['Tech overwhelm','Wasted money','No clear path'], main_benefit:'Start earning commissions', unique_mechanism:'Done-for-you system', audience_psychology:'Skeptical beginners who have tried and failed before.', summary:'An affiliate marketing product for beginners.', offer_score:{overall:7,commission_rating:7,niche_demand:8,conversion_potential:7,tier1_suitability:7,notes:'Solid MMO offer.'}, value_gaps:['No traffic strategy','No email templates','No checklist','No content prompts'], recommended_angle:'Pain & Agitation', angle_reason:'Pain hooks work well for burned-out MMO beginners.' }; }
+    let parsed = extractJson(message.content[0].text);
+    if (!parsed) { parsed = { product_name:'Affiliate product', price:'See page', commission:'See page', niche:'Make Money Online', target_audience:'Beginner affiliate marketers', main_pain_point:'Not making money online despite trying', secondary_pain_points:['Tech overwhelm','Wasted money','No clear path'], main_benefit:'Start earning commissions', unique_mechanism:'Done-for-you system', audience_psychology:'Skeptical beginners who have tried and failed before.', summary:'An affiliate marketing product for beginners.', offer_score:{overall:7,commission_rating:7,niche_demand:8,conversion_potential:7,tier1_suitability:7,notes:'Solid MMO offer.'}, value_gaps:['No traffic strategy','No email templates','No checklist','No content prompts'], recommended_angle:'Pain & Agitation', angle_reason:'Pain hooks work well for burned-out MMO beginners.' }; }
     res.json({ success: true, analysis: parsed });
   } catch (err) { res.status(500).json({ success: false, message: 'Analysis failed: ' + err.message }); }
 });
-
 // ── GENERATE LEAD MAGNET ──────────────────────────────────────
 app.post('/api/generate/lead-magnet', async (req, res) => {
   const user = await requireUser(req, res);
@@ -330,19 +375,16 @@ app.post('/api/generate/lead-magnet', async (req, res) => {
   if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Analysis and angle required' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
-
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 6000, system: SOLO_ADS_KB,
       messages: [{ role: 'user', content: `Create a high-value free lead magnet for cold solo ad traffic in the ${analysis.niche} niche.
-
 Offer: ${analysis.product_name}
 Target audience: ${analysis.target_audience}
 Main pain point: ${analysis.main_pain_point}
 Main benefit: ${analysis.main_benefit}
 Audience psychology: ${analysis.audience_psychology}
 Angle: ${angle}
-
 LEAD MAGNET REQUIREMENTS:
 - 1,500-2,000 words of genuinely useful, actionable content
 - Professional document format with clear sections
@@ -352,7 +394,6 @@ LEAD MAGNET REQUIREMENTS:
 - Title must be compelling, benefit-driven, and specific (include numbers where natural)
 - Write short paragraphs — 2-3 sentences max per paragraph
 - Every section must give them something concrete to implement
-
 Return ONLY valid JSON:
 {
   "title": "Compelling benefit-driven title with specifics",
@@ -361,20 +402,22 @@ Return ONLY valid JSON:
   "full_content": "Complete 1500-2000 word lead magnet with proper markdown formatting — real headers, numbered steps, bullet points, examples. Write every word. No placeholders."
 }` }]
     });
-
-    let lm;
-    try { lm = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch { return res.status(500).json({ success: false, message: 'Failed to parse lead magnet' }); }
-
-    lm.cover_image = await generateImage(lm.cover_prompt);
-
+    let lm = extractJson(message.content[0].text);
+    if (!lm) lm = await repairJson(message.content[0].text, 'The output must be one JSON object with title, subtitle, cover_prompt, and full_content.');
+    if (!lm) return res.status(500).json({ success: false, message: 'Failed to parse lead magnet' });
+    lm.cover_image = await generateImage(lm.cover_prompt, {
+      kind: 'cover',
+      title: lm.title,
+      subtitle: lm.subtitle,
+      badge: 'FREE GUIDE',
+      theme: 'gold'
+    });
     if (project_id) {
       await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'lead_magnet', content: JSON.stringify(lm), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
     res.json({ success: true, lead_magnet: lm });
   } catch (err) { res.status(500).json({ success: false, message: 'Lead magnet failed: ' + err.message }); }
 });
-
 // ── GENERATE BONUS STACK ──────────────────────────────────────
 app.post('/api/generate/bonuses', async (req, res) => {
   const user = await requireUser(req, res);
@@ -383,12 +426,10 @@ app.post('/api/generate/bonuses', async (req, res) => {
   if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Analysis and angle required' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
-
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 9000, system: SOLO_ADS_KB,
       messages: [{ role: 'user', content: `Create a 3-part buyer-only bonus stack for this affiliate offer. Angle: ${angle}.
-
 Product: ${analysis.product_name}
 Niche: ${analysis.niche}
 Main benefit: ${analysis.main_benefit}
@@ -396,7 +437,6 @@ Main pain point: ${analysis.main_pain_point}
 Value gaps: ${(analysis.value_gaps||[]).join(', ')}
 Audience: ${analysis.target_audience}
 Psychology: ${analysis.audience_psychology}
-
 BONUS CONTENT RULES — CRITICAL:
 - Each bonus 400-600 words of REAL, usable content. Not outlines. Actual deliverable content.
 - Each bonus solves ONE specific gap the main offer does not cover
@@ -404,7 +444,6 @@ BONUS CONTENT RULES — CRITICAL:
 - Bonus 2 (2-Page Guide): Educational guide format. Teach a specific strategy or skill. Use headers, sub-sections, examples, and a clear how-to structure.
 - Bonus 3 (AI Prompt Pack): 8-10 complete AI prompts. Each prompt has a title, the full prompt text (copy-paste ready), and 1-2 sentence instructions on how to use it.
 - Cover prompts must describe DIFFERENT visual styles for each bonus so they look like a set but are distinct
-
 Return ONLY valid JSON array — no text before or after:
 [
   {
@@ -436,46 +475,54 @@ Return ONLY valid JSON array — no text before or after:
   }
 ]` }]
     });
-
     let bonuses;
     const raw = message.content[0].text;
-    try { bonuses = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-    catch {
-      const match = raw.match(/\[[\s\S]*\]/);
-      if (match) { try { bonuses = JSON.parse(match[0]); } catch { bonuses = null; } }
-    }
+    bonuses = extractJson(raw);
+    if (!bonuses) bonuses = await repairJson(raw, 'The output must be a JSON array of exactly 3 bonus objects.');
     if (!bonuses) return res.status(500).json({ success: false, message: 'Failed to parse bonuses' });
-
+    bonuses = bonuses.map(normalizeBonus);
+    const bonusValidationError = validateBonuses(bonuses);
+    if (bonusValidationError) {
+      const fixed = await repairJson(JSON.stringify(bonuses), `Repair and complete the bonus stack. ${bonusValidationError}
+Return a JSON array of exactly 3 objects.
+Each object needs number, title, type, tagline, description, full_content, cover_prompt.
+Bonus 1: 15-25 concrete checklist steps.
+Bonus 2: complete practical guide.
+Bonus 3: 8-10 complete copy-paste AI prompts.`);
+      if (!fixed) return res.status(500).json({ success: false, message: 'Bonus content was incomplete and repair failed' });
+      bonuses = fixed.map(normalizeBonus);
+      const secondValidationError = validateBonuses(bonuses);
+      if (secondValidationError) return res.status(500).json({ success: false, message: secondValidationError });
+    }
     // Generate individual bonus cover images
     for (let i = 0; i < bonuses.length; i++) {
-      bonuses[i].cover_image = await generateImage(bonuses[i].cover_prompt);
+      bonuses[i].cover_image = await generateImage(bonuses[i].cover_prompt, {
+        kind: 'cover',
+        title: bonuses[i].title,
+        subtitle: bonuses[i].tagline || bonuses[i].type,
+        badge: bonuses[i].type || `BONUS ${i + 1}`,
+        theme: ['gold', 'blue', 'purple'][i] || 'gold',
+        number: i + 1
+      });
     }
-
     // Generate bonus stack summary copy
     const summaryMsg = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 800, system: SOLO_ADS_KB,
       messages: [{ role: 'user', content: `Write a compelling 250-300 word bonus stack pitch for a bridge page. This sells all 3 bonuses as a package.
-
 Product: ${analysis.product_name}
 Angle: ${angle}
 Bonuses:
 ${bonuses.map(b => `${b.number}. ${b.title} — ${b.description}`).join('\n')}
-
 Structure:
 - Open with the exact problem buyers still face after getting the main offer
 - One sentence per bonus explaining the specific benefit
 - Close with a 3-line summary of what they now have (what to do first / where to get traffic / what to say — or equivalent for this niche)
 - Final line creates urgency
-
 Return only the plain copy text. No JSON.` }]
     });
     const stackSummary = summaryMsg.content[0].text.trim();
-
     // Generate bonus stack image — all 3 together with descriptions
-    const stackSummaryText = bonuses.map(b => b.title + ': ' + (b.tagline || b.description || '')).join(' | ');
-    const stackPrompt = `Three 3D book product mockups arranged side by side on dark navy surface with reflections. Left book: navy/gold with checkmark. Center book: royal blue/white with arrow icon, slightly taller. Right book: purple/gold with lightning bolt. Gold sparkle particles floating around books. Below each book, short white label text. Gold banner above reading EXCLUSIVE BONUS PACKAGE. Studio lighting, dramatic shadows. Marketing display image.`;
-    const stackImage = await generateImage(stackPrompt);
-
+    const stackImage = await generateImage('', { kind: 'stack', bonuses });
     const result = { bonuses, stack_summary: stackSummary, stack_image: stackImage };
     if (project_id) {
       await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'bonus_stack', content: JSON.stringify(result), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
@@ -483,7 +530,6 @@ Return only the plain copy text. No JSON.` }]
     res.json({ success: true, ...result });
   } catch (err) { res.status(500).json({ success: false, message: 'Bonus generation failed: ' + err.message }); }
 });
-
 // ── GENERATE OPT-IN PAGE ──────────────────────────────────────
 app.post('/api/generate/optin', async (req, res) => {
   const user = await requireUser(req, res);
@@ -492,14 +538,11 @@ app.post('/api/generate/optin', async (req, res) => {
   if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Analysis and angle required' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
-
   const lmContext = lead_magnet ? `Lead magnet: "${lead_magnet.title}" — ${lead_magnet.subtitle || ''}` : 'No lead magnet — use main offer promise as incentive.';
-
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 1500, system: SOLO_ADS_KB,
       messages: [{ role: 'user', content: `Write a high-converting opt-in squeeze page for cold solo ad traffic. Angle: ${angle}.
-
 Offer: ${analysis.product_name}
 Niche: ${analysis.niche}
 Main pain point: ${analysis.main_pain_point}
@@ -508,9 +551,7 @@ Main benefit: ${analysis.main_benefit}
 Audience: ${analysis.target_audience}
 Psychology: ${analysis.audience_psychology}
 ${lmContext}
-
 Rules: No bonuses mentioned. Everything above the fold. Two A/B headlines.
-
 Return ONLY valid JSON:
 {
   "headline_a": "Version A — curiosity/pain driven, punchy",
@@ -524,16 +565,13 @@ Return ONLY valid JSON:
   "split_test_tip": "Which to run first and why"
 }` }]
     });
-
-    let content;
-    try { content = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch { return res.status(500).json({ success: false, message: 'Failed to parse opt-in' }); }
-
+    let content = extractJson(message.content[0].text);
+    if (!content) content = await repairJson(message.content[0].text, 'The output must be one JSON object for the opt-in page.');
+    if (!content) return res.status(500).json({ success: false, message: 'Failed to parse opt-in' });
     // Build HTML preview
     const coverImg = lead_magnet && lead_magnet.cover_image
       ? `<img src="${lead_magnet.cover_image}" style="width:200px;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.3);">`
       : '';
-
     content.html_preview = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${content.headline_a}</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}
@@ -570,16 +608,13 @@ ${coverImg ? `<div class="cover-wrap">${coverImg}</div>` : ''}
 </div>
 <script>var h=['${content.headline_a.replace(/'/g,"\\'")}','${content.headline_b.replace(/'/g,"\\'")}'];var i=0;function toggleH(){i=i===0?1:0;document.getElementById('headline').textContent=h[i];}</script>
 </body></html>`;
-
     if (project_id) {
       await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'optin_page', content: JSON.stringify(content), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
     res.json({ success: true, content });
   } catch (err) { res.status(500).json({ success: false, message: 'Opt-in failed: ' + err.message }); }
 });
-
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
 // ── GENERATE BRIDGE PAGE ──────────────────────────────────────
 app.post('/api/generate/bridge', async (req, res) => {
   const user = await requireUser(req, res);
@@ -588,7 +623,6 @@ app.post('/api/generate/bridge', async (req, res) => {
   if (!analysis || !angle || !format) return res.status(400).json({ success: false, message: 'Missing required fields' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
-
   const bonusContext = bonuses && bonuses.length > 0
     ? `Buyer bonuses:\n${bonuses.map(b=>`- ${b.title}: ${b.description}`).join('\n')}\nStack summary: ${stack_summary||''}`
     : 'No bonuses defined.';
@@ -598,12 +632,10 @@ app.post('/api/generate/bridge', async (req, res) => {
     vsl: 'VSL script (3-4 min spoken) + full supporting text copy. Script: hook, relatable problem, solution reveal, each bonus named, urgency close, CTA. 800+ words total.',
     short: 'Punchy 5-7 sentence intro creating massive curiosity + strong CTA. Extremely tight but emotionally powerful.'
   };
-
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 3500, system: SOLO_ADS_KB,
       messages: [{ role: 'user', content: `Write a high-converting bridge page. Angle: ${angle}. Format: ${format}.
-
 Offer: ${analysis.product_name} (${analysis.price||'low ticket'})
 Main benefit: ${analysis.main_benefit}
 Pain point: ${analysis.main_pain_point}
@@ -615,7 +647,6 @@ ${bonusContext}
 Format instructions: ${formatInstructions[format]||formatInstructions.text}
 
 Write in first person. Acknowledge skepticism. Present offer as logical solution. Pitch bonuses as reward for buying through your link specifically.
-
 Return ONLY valid JSON:
 {
   "headline": "Strong headline",
@@ -626,16 +657,13 @@ Return ONLY valid JSON:
   "above_fold_note": "What appears above fold"
 }` }]
     });
-
-    let content;
-    try { content = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch { return res.status(500).json({ success: false, message: 'Failed to parse bridge' }); }
-
+    let content = extractJson(message.content[0].text);
+    if (!content) content = await repairJson(message.content[0].text, 'The output must be one JSON object for the bridge page.');
+    if (!content) return res.status(500).json({ success: false, message: 'Failed to parse bridge' });
     // Build HTML preview
     const stackImgTag = (bonuses && bonuses.length > 0 && bonuses[0].cover_image)
       ? `<div class="bonus-covers">${bonuses.map(b=>b.cover_image?`<img src="${b.cover_image}" style="width:100px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.4);">`:'').join('')}</div>`
       : '';
-
     content.html_preview = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escHtml(content.headline)}</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}
@@ -669,14 +697,12 @@ ${stackImgTag}
 </div>` : ''}
 <div class="cta-wrap"><button class="cta-btn">${escHtml(content.cta_text)}</button><p class="claim-note">${escHtml(content.bonus_claim_note||'')}</p></div>
 </div></body></html>`;
-
     if (project_id) {
       await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'bridge_page', content: JSON.stringify(content), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
     res.json({ success: true, content });
   } catch (err) { res.status(500).json({ success: false, message: 'Bridge failed: ' + err.message }); }
 });
-
 // ── GENERATE EMAILS ───────────────────────────────────────────
 app.post('/api/generate/emails', async (req, res) => {
   const user = await requireUser(req, res);
@@ -685,10 +711,8 @@ app.post('/api/generate/emails', async (req, res) => {
   if (!analysis || !angle || !sequence_type) return res.status(400).json({ success: false, message: 'Missing required fields' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
-
   const bonusContext = bonuses && bonuses.length > 0 ? `Buyer bonuses:\n${bonuses.map(b=>`- ${b.title}: ${b.description}`).join('\n')}` : 'No bonuses.';
   const lmContext = lead_magnet ? `Lead magnet delivered: "${lead_magnet.title}"` : 'No lead magnet.';
-
   const sequences = {
     non_buyers: `5-Day Non-Buyers Sequence — Goal: Convert to Sale
 Day 1: Thank you + deliver lead magnet + soft introduction to offer. Warm, helpful tone. Light link.
@@ -705,13 +729,11 @@ Day 5: Social proof + community — stories of others succeeding, invite them to
 Day 6: Introduce a related solution — frame it as the logical next step after implementing the main offer.
 Day 7: Benefits/demo of related solution — make it feel like the obvious continuation of their journey.`
   };
-
   try {
     const dayCount = sequence_type === 'non_buyers' ? 5 : 7;
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 6000, system: SOLO_ADS_KB,
       messages: [{ role: 'user', content: `Write a complete ${sequence_type === 'non_buyers' ? 'Non-Buyers 5-Day' : 'Buyers 7-Day'} email sequence. Angle: ${angle}.
-
 Offer: ${analysis.product_name}
 Niche: ${analysis.niche}
 Pain: ${analysis.main_pain_point}
@@ -721,7 +743,6 @@ ${lmContext}
 ${bonusContext}
 
 ${sequences[sequence_type]}
-
 CRITICAL EMAIL RULES:
 - Write EVERY email IN FULL — no placeholders, no [write story here], actual copy
 - Use [FirstName], [YourAffiliateLink], [YourName]
@@ -730,19 +751,12 @@ CRITICAL EMAIL RULES:
 - 3 subject lines per email: one curiosity, one direct benefit, one relatable question
 - Non-buyer emails: every email ends with PS reinforcing main reason to act
 - Write emails people actually want to read — not corporate, not hype
-
 Return ONLY a valid JSON array of ${dayCount} emails:
 [{"day":1,"subject_lines":["option1","option2","option3"],"body":"complete email body"}]` }]
     });
-
-    let emails;
-    try { emails = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch {
-      const match = message.content[0].text.match(/\[[\s\S]*\]/);
-      if (match) { try { emails = JSON.parse(match[0]); } catch { emails = null; } }
-    }
+    let emails = extractJson(message.content[0].text);
+    if (!emails) emails = await repairJson(message.content[0].text, `The output must be a JSON array of ${dayCount} complete emails.`);
     if (!emails) return res.status(500).json({ success: false, message: 'Failed to parse emails' });
-
     const contentType = sequence_type === 'non_buyers' ? 'emails_non_buyers' : 'emails_buyers';
     if (project_id) {
       await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: contentType, content: JSON.stringify(emails), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
@@ -750,7 +764,6 @@ Return ONLY a valid JSON array of ${dayCount} emails:
     res.json({ success: true, emails });
   } catch (err) { res.status(500).json({ success: false, message: 'Email generation failed: ' + err.message }); }
 });
-
 // ── GENERATE BLUEPRINT ────────────────────────────────────────
 app.post('/api/generate/blueprint', async (req, res) => {
   const user = await requireUser(req, res);
@@ -759,16 +772,13 @@ app.post('/api/generate/blueprint', async (req, res) => {
   if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Missing required fields' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
-
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514', max_tokens: 4000, system: SOLO_ADS_KB,
       messages: [{ role: 'user', content: `Create a complete copy-paste funnel blueprint.
-
 Offer: ${analysis.product_name} | Angle: ${angle}
 Lead magnet: ${lead_magnet ? lead_magnet.title : 'None'}
 Bonuses: ${bonuses ? bonuses.map(b=>b.title).join(', ') : 'None'}
-
 Write a practical implementation guide covering:
 1. Funnel flow overview
 2. Opt-in page setup (structure, design notes, what goes above fold)
@@ -780,24 +790,19 @@ Write a practical implementation guide covering:
 8. Tracking setup
 9. Build order (step by step)
 10. Pre-launch test checklist
-
 Be specific. Write like someone who has built 100 of these funnels.
-
 Return ONLY valid JSON:
 {"title":"Blueprint title","sections":[{"heading":"Section heading","content":"Full detailed content"}]}` }]
     });
-
-    let blueprint;
-    try { blueprint = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch { return res.status(500).json({ success: false, message: 'Failed to parse blueprint' }); }
-
+    let blueprint = extractJson(message.content[0].text);
+    if (!blueprint) blueprint = await repairJson(message.content[0].text, 'The output must be one JSON object with title and sections.');
+    if (!blueprint) return res.status(500).json({ success: false, message: 'Failed to parse blueprint' });
     if (project_id) {
       await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'blueprint', content: JSON.stringify(blueprint), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
     res.json({ success: true, blueprint });
   } catch (err) { res.status(500).json({ success: false, message: 'Blueprint failed: ' + err.message }); }
 });
-
 // ── DOWNLOAD: SINGLE BONUS as DOCX ───────────────────────────
 app.post('/api/download/bonus', async (req, res) => {
   const user = await requireUser(req, res);
@@ -810,7 +815,6 @@ app.post('/api/download/bonus', async (req, res) => {
     await buildAndSendDocx(res, children, filename);
   } catch (err) { res.status(500).json({ success: false, message: 'Download failed: ' + err.message }); }
 });
-
 // ── DOWNLOAD: ALL BONUSES — 3 separate DOCX in zip, or individual ──
 app.post('/api/download/bonuses-all', async (req, res) => {
   const user = await requireUser(req, res);
@@ -835,7 +839,6 @@ ${bonuses.map(b=>`<div class="item"><div class="num">${b.number}</div><div class
   res.setHeader('Content-Disposition', `attachment; filename="Bonus-Stack-Index.html"`);
   res.send(html);
 });
-
 // ── DOWNLOAD: LEAD MAGNET as DOCX ─────────────────────────────
 app.post('/api/download/lead-magnet', async (req, res) => {
   const user = await requireUser(req, res);
@@ -848,7 +851,6 @@ app.post('/api/download/lead-magnet', async (req, res) => {
     await buildAndSendDocx(res, children, filename);
   } catch (err) { res.status(500).json({ success: false, message: 'Download failed: ' + err.message }); }
 });
-
 // ── DOWNLOAD: OPT-IN PAGE HTML ────────────────────────────────
 app.post('/api/download/optin-html', async (req, res) => {
   const user = await requireUser(req, res);
@@ -859,7 +861,6 @@ app.post('/api/download/optin-html', async (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="Opt-In-Page-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
   res.send(html_content);
 });
-
 // ── DOWNLOAD: BRIDGE PAGE HTML ────────────────────────────────
 app.post('/api/download/bridge-html', async (req, res) => {
   const user = await requireUser(req, res);
@@ -870,7 +871,6 @@ app.post('/api/download/bridge-html', async (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="Bridge-Page-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
   res.send(html_content);
 });
-
 // ── DOWNLOAD: BLUEPRINT ───────────────────────────────────────
 app.post('/api/download/blueprint', async (req, res) => {
   const user = await requireUser(req, res);
@@ -893,7 +893,6 @@ ${(blueprint.sections||[]).map(s=>`<div class="section"><h2>${escHtml(s.heading)
   res.setHeader('Content-Disposition', `attachment; filename="Blueprint-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
   res.send(html);
 });
-
 // ── PROJECT MANAGEMENT ────────────────────────────────────────
 app.post('/api/projects', async (req, res) => {
   const user = await requireUser(req, res);
@@ -926,7 +925,6 @@ app.delete('/api/projects/:id', async (req, res) => {
   await adminClient.from('promolab_projects').delete().eq('id', req.params.id).eq('user_id', user.id);
   res.json({ success: true });
 });
-
 // ── ADMIN ─────────────────────────────────────────────────────
 app.post('/api/admin/access', async (req, res) => {
   const user = await requireUser(req, res);
@@ -949,5 +947,5 @@ app.get('/api/admin/users', async (req, res) => {
   const { data } = await adminClient.from('promolab_access').select('*');
   res.json({ success: true, users: data || [] });
 });
-
 app.listen(PORT, () => console.log('PromoLab v4 running on port ' + PORT));
+
