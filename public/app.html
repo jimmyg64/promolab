@@ -440,7 +440,7 @@ async function buildBonuses(){
       renderBonuses(data.bonuses);
       renderActionMenu();
     } else { showOutputError(data.message); }
-  } catch(e){ showOutputError('Network error. Please try again.'); }
+  } catch(e){ showOutputError('Error: ' + e.message); }
 }
 
 function renderBonuses(bonuses){
