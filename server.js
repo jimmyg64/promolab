@@ -1134,7 +1134,7 @@ app.post('/api/admin/access', async (req, res) => {
   if (!user) return;
   const access = await getUserAccess(user.id);
   if (!access.is_admin) return res.status(403).json({ success: false, message: 'Admin only' });
-  const { target_email, solo_ads, facebook, email_sequence, launchjacking, affiliate_launch_guide } = req.body;
+  const { target_email, solo_ads, facebook, email_sequence, launchjacking, affiliate_launch_guide, plan_name, monthly_generation_limit } = req.body;
   const { data: users } = await adminClient.auth.admin.listUsers();
   const found = (users.users || []).find((u) => u.email === target_email);
   if (!found) return res.status(404).json({ success: false, message: 'User not found' });
@@ -1145,6 +1145,10 @@ app.post('/api/admin/access', async (req, res) => {
     email_sequence: !!email_sequence,
     launchjacking: !!launchjacking,
     affiliate_launch_guide: !!affiliate_launch_guide,
+    plan_name: plan_name || 'solo_ads_basic',
+    monthly_generation_limit: monthly_generation_limit === '' || monthly_generation_limit === null || monthly_generation_limit === undefined
+      ? null
+      : Number(monthly_generation_limit),
     updated_at: new Date().toISOString()
   }, { onConflict: 'user_id' });
   if (error) return res.status(400).json({ success: false, message: error.message });
