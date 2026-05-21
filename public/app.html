@@ -215,8 +215,8 @@ var SOLO_ACTIONS = [
   { key:'bonuses', name:'Build bonus stack', desc:'3 buyer-only bonuses with cover images', icon:'🎁', deps:[], provides:'bonuses' },
   { key:'optin', name:'Opt-in page', desc:'Squeeze page with A/B headlines', icon:'📋', deps:[], provides:'optin' },
   { key:'bridge', name:'Bridge page', desc:'VSL script or text copy', icon:'🌉', deps:['bonuses'], provides:'bridge' },
-  { key:'emails_non_buyers', name:'Email sequence — non-buyers', desc:'4-day convert to sale sequence', icon:'📨', deps:['bonuses'], provides:'emails_non_buyers' },
-  { key:'emails_buyers', name:'Email sequence — buyers', desc:'4-day onboard & ascend sequence', icon:'📬', deps:[], provides:'emails_buyers' },
+  { key:'emails_non_buyers', name:'Email sequence — non-buyers', desc:'5-day convert to sale sequence', icon:'📨', deps:['bonuses'], provides:'emails_non_buyers' },
+  { key:'emails_buyers', name:'Email sequence — buyers', desc:'7-day onboard & ascend sequence', icon:'📬', deps:[], provides:'emails_buyers' },
   { key:'blueprint', name:'Copy-paste blueprint', desc:'Full funnel assembly guide', icon:'📐', deps:[], provides:'blueprint' },
   { key:'full_funnel', name:'Full funnel', desc:'Build everything in the right order', icon:'⚡', deps:[], provides:'full' }
 ];
@@ -426,8 +426,9 @@ function renderLeadMagnet(lm){
   }
   html+='<div style="font-size:16px;font-weight:700;margin-bottom:4px">'+esc(lm.title)+'</div>';
   html+='<div style="font-size:13px;color:#555;margin-bottom:14px">'+esc(lm.subtitle||'')+'</div>';
-  html+='<div class="output-label">Full content <button class="copy-btn" onclick="copyText(\''+contentId+'\',this)">Copy</button></div>';
-  html+='<div class="output-box" id="'+contentId+'">'+esc(lm.full_content)+'</div>';
+  html+='<div class="output-label">Full content <button class="copy-btn" onclick="copyRaw(\'lm_raw\',this)">Copy raw</button></div>';
+  html+='<div style="background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:14px;line-height:1.7;color:#1A1A2E">'+mdToHtml(lm.full_content)+'</div>';
+  html+='<textarea id="lm_raw" style="display:none">'+esc(lm.full_content)+'</textarea>';
   html+='</div>';
   document.getElementById('content-output-area').innerHTML=html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
@@ -473,7 +474,11 @@ function renderBonuses(bonuses,stackSummary,stackImage){
   html+='<div class="section-label">Bonus stack <button class="regen-btn" onclick="buildBonuses()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="downloadAllBonuses()">&#8595; Download all</button></div>';
 
   if(stackImage){
-    html+='<img src="'+stackImage+'" class="stack-image" alt="Bonus stack">';
+    html+='<div style="margin-bottom:16px;text-align:center">';
+    html+='<div style="font-size:11px;font-weight:700;color:#4F46B8;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">Bonus Stack Image (use on bridge page)</div>';
+    html+='<img src="'+stackImage+'" style="width:100%;max-width:480px;border-radius:10px;border:1px solid #EEEDFE;box-shadow:0 4px 16px rgba(0,0,0,0.1);" alt="Bonus stack">';
+    html+='<div style="margin-top:8px"><a href="'+stackImage+'" download="Bonus-Stack-Image.png" class="btn btn-outline btn-sm">&#8595; Save image</a></div>';
+    html+='</div>';
   }
 
   bonuses.forEach(function(b){
@@ -489,7 +494,7 @@ function renderBonuses(bonuses,stackSummary,stackImage){
     html+='<div class="bonus-header">';
     html+='<div class="bonus-num">'+b.number+'</div>';
     html+='<div style="flex:1"><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>';
-    html+='<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; Download</button>';
+    html+='<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; .docx</button>';
     html+='</div>';
     html+=coverHtml;
     html+='<div class="output-label">Description <button class="copy-btn" onclick="copyText(\''+descId+'\',this)">Copy</button></div>';
@@ -900,6 +905,36 @@ async function downloadBridgeHtml(){
   } catch(e){alert('Error: '+e.message);btn.disabled=false;btn.textContent='↓ Download HTML';}
 }
 
+
+// ── Markdown to readable HTML ─────────────────────────────────
+function mdToHtml(text){
+  if(!text) return '';
+  var lines = String(text).split('\n');
+  var out = [];
+  for(var i=0;i<lines.length;i++){
+    var line = lines[i];
+    var t = line.trim();
+    if(!t){out.push('');continue;}
+    if(t.startsWith('### ')) out.push('<strong style="font-size:13px;color:#333;display:block;margin-top:12px;margin-bottom:4px">'+esc(t.slice(4))+'</strong>');
+    else if(t.startsWith('## ')) out.push('<strong style="font-size:14px;color:#4F46B8;display:block;margin-top:16px;margin-bottom:6px;padding-top:8px;border-top:1px solid #EEEDFE">'+esc(t.slice(3))+'</strong>');
+    else if(t.startsWith('# ')) out.push('<strong style="font-size:15px;color:#1A1A2E;display:block;margin-top:20px;margin-bottom:8px">'+esc(t.slice(2))+'</strong>');
+    else if(t.startsWith('- ') || t.startsWith('• ')) out.push('<div style="display:flex;gap:8px;margin:3px 0;font-size:13px;line-height:1.5"><span style="color:#4F46B8;flex-shrink:0">•</span><span>'+esc(t.slice(2))+'</span></div>');
+    else if(/^\d+\.\s/.test(t)) out.push('<div style="margin:3px 0;font-size:13px;line-height:1.5">'+esc(t)+'</div>');
+    else if(t.startsWith('**') && t.endsWith('**') && t.length>4) out.push('<strong style="font-size:13px;display:block;margin-top:10px;margin-bottom:4px">'+esc(t.slice(2,-2))+'</strong>');
+    else out.push('<span style="font-size:13px;line-height:1.7;display:block;margin:2px 0">'+esc(t)+'</span>');
+  }
+  return out.join('\n');
+}
+
+
+function copyRaw(id, btn){
+  var el=document.getElementById(id);
+  if(!el) return;
+  navigator.clipboard.writeText(el.value||el.textContent).then(function(){
+    btn.textContent='Copied!';
+    setTimeout(function(){btn.textContent='Copy raw';},1500);
+  });
+}
 init();
 </script>
 </body>
