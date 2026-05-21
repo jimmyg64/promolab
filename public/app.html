@@ -27,10 +27,15 @@ input,textarea,select{width:100%;border:1px solid #d9dcef;border-radius:8px;padd
 textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.alert{padding:12px 14px;border-radius:8px;font-size:13px;font-weight:700;margin:12px 0}.error{background:#fee2e2;color:#7f1d1d}.ok{background:#dcfce7;color:#166534}.info{background:#eef0ff;color:#3730a3}
 .loading{display:flex;gap:10px;align-items:center;color:#4f46b8;font-size:13px;font-weight:900}.spin{width:17px;height:17px;border-radius:50%;border:3px solid #d7d5ff;border-top-color:#4f46b8;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.work-overlay{position:fixed;inset:0;background:rgba(16,19,37,.72);display:none;align-items:center;justify-content:center;z-index:20}
+.work-card{background:#fff;border-radius:12px;padding:26px 30px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.28);width:min(360px,90vw)}
+.work-card .bigspin{width:48px;height:48px;border-radius:50%;border:6px solid #e7e5ff;border-top-color:#4f46b8;animation:spin .85s linear infinite;margin:0 auto 16px}
+.work-card strong{display:block;font-size:16px;margin-bottom:6px}.work-card span{font-size:13px;color:#6b7280;line-height:1.5}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{border:1px solid #e6e8f5;border-radius:9px;padding:14px;background:#fbfbff}.card h3{margin:0 0 7px;font-size:15px}.card p{font-size:13px;color:#5b6478;line-height:1.45;margin:0 0 8px}
 .angle{border:1px solid #e6e8f5;border-radius:9px;padding:14px;cursor:pointer;background:#fbfbff}.angle.selected{border-color:#4f46b8;background:#f1f0ff}.angle h3{margin:0 0 6px;font-size:15px}
 .output{background:#f8f8ff;border:1px solid #ececff;border-radius:9px;padding:14px;white-space:pre-wrap;font-size:13px;line-height:1.65;color:#111827;max-height:560px;overflow:auto}
-.mockups{display:flex;gap:12px;flex-wrap:wrap}.mockups img{width:150px;border-radius:9px;background:#0b1020;box-shadow:0 8px 22px rgba(0,0,0,.16)}
+.mockups{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}.mockups img{width:180px;border-radius:9px;background:#0b1020;box-shadow:0 8px 22px rgba(0,0,0,.16)}
+.image-card{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .wide-img{max-width:520px;width:100%;border-radius:9px;background:#0b1020;box-shadow:0 8px 22px rgba(0,0,0,.16)}
 .split{display:grid;grid-template-columns:220px 1fr;gap:16px}.mini-list{display:flex;flex-direction:column;gap:8px}.mini{border:1px solid #e6e8f5;border-radius:8px;padding:10px;font-size:13px;font-weight:800;cursor:pointer}.mini.active{border-color:#4f46b8;background:#f1f0ff}
 .hidden{display:none!important}.small{font-size:12px;color:#6b7280}.footer-note{text-align:center;color:#9ca3af;font-size:12px;padding:20px}
@@ -38,6 +43,13 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
 </style>
 </head>
 <body>
+<div class="work-overlay" id="work-overlay">
+  <div class="work-card">
+    <div class="bigspin"></div>
+    <strong>Creating your content</strong>
+    <span id="work-message">Please keep this page open.</span>
+  </div>
+</div>
 <div class="top">
   <div class="brand">Promo<span>Lab</span> 2.0</div>
   <div class="user"><span id="user-email">Loading...</span><button class="btn secondary" onclick="logout()">Logout</button></div>
@@ -127,6 +139,8 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
         <div id="optin-box"></div>
         <div class="actions">
           <button class="btn" onclick="generateOptin()">Generate / Redo Opt-In Copy</button>
+          <button class="btn light" onclick="previewHtml(optinHtml())">View HTML</button>
+          <button class="btn light" onclick="downloadHtml('Opt-In-Page.html', optinHtml())">Download HTML</button>
           <button class="btn secondary" onclick="downloadTextDoc('OptIn.docx','Opt-In Page', '', 'Opt-In Copy', optinText())">Download DOCX</button>
           <button class="btn light" onclick="go(7)">Approve and Continue</button>
         </div>
@@ -143,6 +157,8 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
         <div id="bridge-box"></div>
         <div class="actions">
           <button class="btn" onclick="generateBridge()">Generate / Redo Bridge Page</button>
+          <button class="btn light" onclick="previewHtml(bridgeHtml())">View HTML</button>
+          <button class="btn light" onclick="downloadHtml('Bridge-Page.html', bridgeHtml())">Download HTML</button>
           <button class="btn secondary" onclick="downloadTextDoc('BridgePage.docx','Bridge Page', '', 'Bridge Copy', bridgeText())">Download DOCX</button>
           <button class="btn light" onclick="go(8)">Approve and Continue</button>
         </div>
@@ -228,13 +244,23 @@ function loading(msg){
   showStatus('<span class="loading"><span class="spin"></span>'+esc(msg||'Working...')+'</span>', 'info');
 }
 
+function setWorking(on, msg){
+  document.getElementById('work-overlay').style.display = on ? 'flex' : 'none';
+  document.getElementById('work-message').textContent = msg || 'Please keep this page open.';
+}
+
 async function api(url, body){
   loading('Generating. This can take a minute...');
-  var res = await fetch(url, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{}) });
-  var data = await res.json();
-  if(!data.success) throw new Error(data.message || 'Something went wrong');
-  showStatus('Done. Review the output and approve when ready.', 'ok');
-  return data;
+  setWorking(true, 'The app is creating this section now. Larger assets can take a minute or two.');
+  try {
+    var res = await fetch(url, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{}) });
+    var data = await res.json();
+    if(!data.success) throw new Error(data.message || 'Something went wrong');
+    showStatus('Done. Review the output and approve when ready.', 'ok');
+    return data;
+  } finally {
+    setWorking(false);
+  }
 }
 
 async function analyzeOffer(){
@@ -320,10 +346,10 @@ function renderBonusWork(){
   var plan = state.bonusPlan && state.bonusPlan.bonuses ? state.bonusPlan.bonuses[state.currentBonus] : null;
   if(!plan){ document.getElementById('bonus-work').innerHTML = '<div class="alert info">Approve a bonus plan first.</div>'; return; }
   if(!b){ document.getElementById('bonus-work').innerHTML = '<div class="alert info">Ready to generate '+esc(plan.title)+'.</div>'; return; }
-  document.getElementById('bonus-work').innerHTML =
-    '<div class="mockups"><img src="'+b.cover_image+'" alt="Bonus cover"></div>'+
-    '<h2 style="margin-top:14px">'+esc(b.title)+'</h2><p class="sub">'+esc(b.description)+'</p>'+
-    '<div class="output">'+esc(b.full_content)+'</div>';
+  document.getElementById('bonus-work').innerHTML = `
+    <div class="mockups"><div class="image-card"><img src="${b.cover_image}" alt="Bonus cover"><button class="btn secondary" onclick="downloadImage(state.bonuses[state.currentBonus].cover_image, 'Bonus-${b.number}-Cover.svg')">Download Image</button></div></div>
+    <h2 style="margin-top:14px">${esc(b.title)}</h2><p class="sub">${esc(b.description)}</p>
+    <div class="output">${esc(b.full_content)}</div>`;
 }
 
 async function generateCurrentBonus(){
@@ -351,7 +377,10 @@ async function generateStack(){
 
 function renderStack(){
   if(!state.stack){ document.getElementById('stack-box').innerHTML = '<div class="alert info">Generate the approved stack summary.</div>'; return; }
-  document.getElementById('stack-box').innerHTML = '<img class="wide-img" src="'+state.stack.stack_image+'"><h2 style="margin-top:14px">'+esc(state.stack.headline)+'</h2><div class="output">'+esc(state.stack.summary)+'\n\n- '+esc((state.stack.bullets||[]).join('\n- '))+'</div>';
+  document.getElementById('stack-box').innerHTML = `
+    <div class="image-card"><img class="wide-img" src="${state.stack.stack_image}"><button class="btn secondary" onclick="downloadImage(state.stack.stack_image, 'Bonus-Stack.svg')">Download Stack Image</button></div>
+    <h2 style="margin-top:14px">${esc(state.stack.headline)}</h2>
+    <div class="output">${esc(state.stack.summary)}\n\n- ${esc((state.stack.bullets||[]).join('\n- '))}</div>`;
 }
 
 async function generateLeadMagnet(){
@@ -371,7 +400,11 @@ function skipLeadMagnet(){
 function renderLead(){
   if(!state.leadMagnet){ document.getElementById('lead-box').innerHTML=''; return; }
   var l = state.leadMagnet;
-  document.getElementById('lead-box').innerHTML = '<div class="mockups"><img src="'+l.cover_image+'"></div><h2 style="margin-top:14px">'+esc(l.title)+'</h2><p class="sub">'+esc(l.subtitle)+'</p><div class="output">'+esc(l.full_content)+'</div><div class="actions"><button class="btn light" onclick="go(6)">Approve and Continue</button></div>';
+  document.getElementById('lead-box').innerHTML = `
+    <div class="mockups"><div class="image-card"><img src="${l.cover_image}"><button class="btn secondary" onclick="downloadImage(state.leadMagnet.cover_image, 'Lead-Magnet-Cover.svg')">Download Image</button></div></div>
+    <h2 style="margin-top:14px">${esc(l.title)}</h2><p class="sub">${esc(l.subtitle)}</p>
+    <div class="output">${esc(l.full_content)}</div>
+    <div class="actions"><button class="btn light" onclick="go(6)">Approve and Continue</button></div>`;
 }
 
 async function generateOptin(){
@@ -428,6 +461,45 @@ function emailsText(type){
   return arr.map(function(e){
     return 'Day '+e.day+' - '+(e.purpose||'')+'\nSubject lines:\n1. '+(e.subject_lines||[])[0]+'\n2. '+(e.subject_lines||[])[1]+'\n3. '+(e.subject_lines||[])[2]+'\n\n'+(e.body||'');
   }).join('\n\n-----------------------------\n\n');
+}
+
+function optinHtml(){
+  if(!state.optin){ showStatus('Generate the opt-in page first.','error'); return ''; }
+  var o = state.optin;
+  var cover = state.leadMagnet && state.leadMagnet.cover_image ? '<img class="cover" src="'+state.leadMagnet.cover_image+'" alt="Lead magnet cover">' : '';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opt-In Page</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#080b18;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}.page{max-width:680px;text-align:center}.eyebrow{display:inline-block;color:#f8c75a;border:1px solid rgba(248,199,90,.45);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px}h1{font-size:clamp(30px,6vw,54px);line-height:1.04;margin:0 0 16px;font-weight:900}.sub{color:#c7d2fe;font-size:19px;line-height:1.5;margin:0 auto 22px}.cover{width:210px;max-width:70%;border-radius:10px;box-shadow:0 18px 45px rgba(0,0,0,.45);margin:4px auto 22px}.bullets{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:18px;text-align:left;margin:0 0 22px}.bullet{margin:9px 0;color:#e5e7eb;font-size:15px;line-height:1.45}.form input{display:block;width:100%;padding:15px 16px;margin:10px 0;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px}.cta{width:100%;border:0;border-radius:10px;background:#ff5a1f;color:#fff;font-weight:900;font-size:18px;padding:17px;cursor:pointer}.micro{color:#94a3b8;font-size:12px;margin-top:12px}</style></head><body><main class="page"><div class="eyebrow">Free Instant Access</div><h1>'+esc(o.headline_a)+'</h1><p class="sub">'+esc(o.subheadline)+'</p>'+cover+'<div class="bullets">'+(o.below_fold_bullets||[]).map(function(b){return '<div class="bullet">✓ '+esc(b)+'</div>';}).join('')+'</div><div class="form"><input placeholder="First Name"><input placeholder="Email Address"><button class="cta">'+esc(o.cta_button)+'</button><p class="micro">'+esc(o.privacy_statement||o.trust_element||'Your email is safe. Unsubscribe anytime.')+'</p></div></main></body></html>';
+}
+
+function bridgeHtml(){
+  if(!state.bridge){ showStatus('Generate the bridge page first.','error'); return ''; }
+  var b = state.bridge;
+  var stack = state.stack && state.stack.stack_image ? '<img class="stack" src="'+state.stack.stack_image+'" alt="Bonus stack">' : '';
+  var bonusList = state.bonuses.map(function(x){ return '<li><strong>'+esc(x.title)+'</strong><br><span>'+esc(x.description)+'</span></li>'; }).join('');
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bridge Page</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f2f3fb;color:#101325}.hero{background:#090d1d;color:#fff;text-align:center;padding:56px 22px}.hero h1{font-size:clamp(28px,5vw,48px);line-height:1.08;margin:0 auto 14px;max-width:820px}.hero p{color:#c7d2fe;font-size:18px;max-width:680px;margin:0 auto}.wrap{max-width:760px;margin:0 auto;padding:34px 22px}.copy{white-space:pre-wrap;font-size:17px;line-height:1.75}.bonus{background:#fff;border-radius:16px;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,.08);margin:28px 0}.stack{width:100%;border-radius:12px;background:#07111f;margin-bottom:18px}li{margin:14px 0;line-height:1.45}li span{color:#4b5563}.cta{display:block;text-align:center;background:#ff5a1f;color:#fff;text-decoration:none;font-size:18px;font-weight:900;border-radius:10px;padding:18px;margin:28px 0 10px}.note{text-align:center;color:#6b7280;font-size:13px}</style></head><body><section class="hero"><h1>'+esc(b.headline)+'</h1><p>'+esc(b.subheadline||'')+'</p></section><main class="wrap"><div class="copy">'+esc(b.confirmation_section||'')+'\n\n'+esc(b.bridge_content||'')+'</div><section class="bonus"><h2>Your Exclusive Buyer Bonuses</h2>'+stack+'<ul>'+bonusList+'</ul></section><a class="cta" href="[YourAffiliateLink]">'+esc(b.cta_text||'Take A Look At This')+'</a><p class="note">'+esc(b.bonus_claim_note||'')+'</p></main></body></html>';
+}
+
+function previewHtml(html){
+  if(!html) return;
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+function downloadHtml(filename, html){
+  if(!html) return;
+  var blob = new Blob([html], { type:'text/html' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadImage(dataUrl, filename){
+  if(!dataUrl){ showStatus('No image is ready yet.','error'); return; }
+  var a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename || 'PromoLab-Image.svg';
+  a.click();
 }
 
 function downloadCurrentBonus(){
