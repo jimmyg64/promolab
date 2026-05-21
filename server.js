@@ -29,6 +29,10 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+const CLAUDE_QUEUE_INTERVAL_MS = Number(process.env.CLAUDE_QUEUE_INTERVAL_MS || 4500);
+const CLAUDE_RATE_LIMIT_WAIT_MS = Number(process.env.CLAUDE_RATE_LIMIT_WAIT_MS || 65000);
+let claudeQueue = Promise.resolve();
+let lastClaudeStart = 0;
 
 const SOLO_ADS_KB = `
 You are the Solo Ads IQ Funnel Architect inside PromoLab.
@@ -132,8 +136,38 @@ function jsonFromText(text) {
   return null;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRateLimitError(err) {
+  const text = String((err && (err.message || err.error && err.error.message)) || '');
+  return err && (err.status === 429 || text.includes('rate_limit') || text.toLowerCase().includes('rate limit'));
+}
+
+async function runClaudeQueued(payload) {
+  const run = claudeQueue.then(async () => {
+    const elapsed = Date.now() - lastClaudeStart;
+    if (elapsed < CLAUDE_QUEUE_INTERVAL_MS) await sleep(CLAUDE_QUEUE_INTERVAL_MS - elapsed);
+    lastClaudeStart = Date.now();
+
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      try {
+        return await anthropic.messages.create(payload);
+      } catch (err) {
+        if (!isRateLimitError(err) || attempt === 4) throw err;
+        console.log(`Claude rate limit hit. Waiting before retry ${attempt + 1}/4.`);
+        await sleep(CLAUDE_RATE_LIMIT_WAIT_MS);
+      }
+    }
+  });
+
+  claudeQueue = run.catch(() => {});
+  return run;
+}
+
 async function askJson(prompt, maxTokens = 5000, repairInstruction = 'Return valid JSON only.') {
-  const msg = await anthropic.messages.create({
+  const msg = await runClaudeQueued({
     model: MODEL,
     max_tokens: maxTokens,
     system: SOLO_ADS_KB,
@@ -143,7 +177,7 @@ async function askJson(prompt, maxTokens = 5000, repairInstruction = 'Return val
   const parsed = jsonFromText(text);
   if (parsed) return parsed;
 
-  const repair = await anthropic.messages.create({
+  const repair = await runClaudeQueued({
     model: MODEL,
     max_tokens: maxTokens,
     system: 'You repair malformed AI output into strict valid JSON. Return JSON only.',
