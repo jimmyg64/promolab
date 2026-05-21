@@ -474,10 +474,12 @@ function renderBonuses(bonuses,stackSummary,stackImage){
   html+='<div class="section-label">Bonus stack <button class="regen-btn" onclick="buildBonuses()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="downloadAllBonuses()">&#8595; Download all</button></div>';
 
   if(stackImage){
-    html+='<div style="margin-bottom:16px;text-align:center">';
-    html+='<div style="font-size:11px;font-weight:700;color:#4F46B8;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px">Bonus Stack Image (use on bridge page)</div>';
-    html+='<img src="'+stackImage+'" style="width:100%;max-width:480px;border-radius:10px;border:1px solid #EEEDFE;box-shadow:0 4px 16px rgba(0,0,0,0.1);" alt="Bonus stack">';
-    html+='<div style="margin-top:8px"><a href="'+stackImage+'" download="Bonus-Stack-Image.png" class="btn btn-outline btn-sm">&#8595; Save image</a></div>';
+    html+='<div style="margin-bottom:20px;text-align:center;background:#1A1A2E;border-radius:10px;padding:20px">';
+    html+='<div style="font-size:10px;font-weight:700;color:#AAAACC;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px">Bonus Stack Image &mdash; use on your bridge page</div>';
+    html+='<img src="'+stackImage+'" style="width:100%;max-width:500px;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);" alt="Bonus stack">';
+    html+='<div style="margin-top:12px;display:flex;justify-content:center;gap:8px">';
+    html+='<a href="'+stackImage+'" download="Bonus-Stack-Image.png" class="btn btn-sm" style="background:#4F46B8;color:#fff;text-decoration:none">&#8595; Save Image</a>';
+    html+='</div>';
     html+='</div>';
   }
 
@@ -500,7 +502,8 @@ function renderBonuses(bonuses,stackSummary,stackImage){
     html+='<div class="output-label">Description <button class="copy-btn" onclick="copyText(\''+descId+'\',this)">Copy</button></div>';
     html+='<div class="output-box" id="'+descId+'">'+esc(b.description)+'</div>';
     html+='<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\''+contId+'\',this)">Copy</button></div>';
-    html+='<div class="output-box" id="'+contId+'">'+esc(b.full_content)+'</div>';
+    html+='<div style="background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:14px;line-height:1.7;color:#1A1A2E" id="'+contId+'">'+mdToHtml(b.full_content)+'</div>';
+    html+='<textarea id="bonus_raw_'+b.number+'" style="display:none">'+esc(b.full_content)+'</textarea>';
     html+='</div>';
   });
 
@@ -508,7 +511,7 @@ function renderBonuses(bonuses,stackSummary,stackImage){
     var ssId='stack_summary';
     html+='<div style="margin-top:14px">';
     html+='<div class="output-label">Bonus stack pitch copy <button class="copy-btn" onclick="copyText(\''+ssId+'\',this)">Copy</button></div>';
-    html+='<div class="output-box" id="'+ssId+'">'+esc(stackSummary)+'</div>';
+    html+='<div style="background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:14px;line-height:1.7;color:#1A1A2E" id="'+ssId+'">'+mdToHtml(stackSummary)+'</div>';
     html+='</div>';
   }
   html+='</div>';
@@ -521,7 +524,7 @@ async function downloadBonus(num){
   if(!bonus){alert('Bonus not found.');return;}
   try {
     var res=await fetch('/api/download/bonus',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({bonus:bonus,product_name:state.analysis?state.analysis.product_name:'this offer'})});
-    if(res.ok){var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Bonus-'+num+'.html';a.click();URL.revokeObjectURL(url);}
+    if(res.ok){var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Bonus-'+num+'-'+((bonus.title||'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40))+'.docx';a.click();URL.revokeObjectURL(url);btn.textContent='Downloaded!';setTimeout(function(){btn.disabled=false;btn.textContent='↓ .docx';},2000);}else{alert('Download failed.');btn.disabled=false;btn.textContent='↓ .docx';}
     else{alert('Download failed.');}
   } catch(e){alert('Download error: '+e.message);}
 }
