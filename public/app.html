@@ -61,7 +61,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
     <main>
       <section class="panel">
         <h1>Solo Ads Funnel Builder</h1>
-        <p class="sub">A guided workflow based on your Solo Ads IQ process. Build one approved asset at a time instead of hoping one giant generation gets everything right.</p>
+        <p class="sub">Turn any affiliate offer into a complete solo ad funnel with buyer bonuses, opt-in copy, bridge-page assets, email follow-up, and downloadable promo materials.</p>
         <div id="status"></div>
       </section>
 
@@ -267,12 +267,23 @@ async function api(url, body){
   try {
     var res = await fetch(url, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{}) });
     var data = await res.json();
-    if(!data.success) throw new Error(data.message || 'Something went wrong');
+    if(!data.success) throw new Error(friendlyError(data.message || 'Something went wrong'));
     showStatus('Done. Review the output and approve when ready.', 'ok');
     return data;
   } finally {
     setWorking(false);
   }
+}
+
+function friendlyError(message){
+  var text = String(message || '');
+  if(text.indexOf('rate_limit_error') !== -1 || text.toLowerCase().indexOf('rate limit') !== -1){
+    return 'The AI service is cooling down because this project generated a lot of content quickly. Please wait about 60 seconds, then click the button again.';
+  }
+  if(text.toLowerCase().indexOf('failed to fetch') !== -1){
+    return 'The app could not reach the server. Please refresh the page and try again.';
+  }
+  return text.length > 260 ? text.slice(0,260) + '...' : text;
 }
 
 async function analyzeOffer(){
