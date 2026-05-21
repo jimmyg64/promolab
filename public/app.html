@@ -32,6 +32,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
 .work-card .bigspin{width:48px;height:48px;border-radius:50%;border:6px solid #e7e5ff;border-top-color:#4f46b8;animation:spin .85s linear infinite;margin:0 auto 16px}
 .work-card strong{display:block;font-size:16px;margin-bottom:6px}.work-card span{font-size:13px;color:#6b7280;line-height:1.5}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{border:1px solid #e6e8f5;border-radius:9px;padding:14px;background:#fbfbff}.card h3{margin:0 0 7px;font-size:15px}.card p{font-size:13px;color:#5b6478;line-height:1.45;margin:0 0 8px}
+.usage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.usage-item{background:#f8f8ff;border:1px solid #e6e8f5;border-radius:8px;padding:11px}.usage-label{font-size:11px;color:#6b7280;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.usage-value{font-size:18px;font-weight:900;color:#1f2370;margin-top:3px}
 .angle{border:1px solid #e6e8f5;border-radius:9px;padding:14px;cursor:pointer;background:#fbfbff}.angle.selected{border-color:#4f46b8;background:#f1f0ff}.angle h3{margin:0 0 6px;font-size:15px}
 .output{background:#f8f8ff;border:1px solid #ececff;border-radius:9px;padding:14px;white-space:pre-wrap;font-size:13px;line-height:1.65;color:#111827;max-height:560px;overflow:auto}
 .mockups{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}.mockups img{width:180px;border-radius:9px;background:#0b1020;box-shadow:0 8px 22px rgba(0,0,0,.16)}
@@ -39,7 +40,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
 .wide-img{max-width:520px;width:100%;border-radius:9px;background:#0b1020;box-shadow:0 8px 22px rgba(0,0,0,.16)}
 .split{display:grid;grid-template-columns:220px 1fr;gap:16px}.mini-list{display:flex;flex-direction:column;gap:8px}.mini{border:1px solid #e6e8f5;border-radius:8px;padding:10px;font-size:13px;font-weight:800;cursor:pointer}.mini.active{border-color:#4f46b8;background:#f1f0ff}
 .hidden{display:none!important}.small{font-size:12px;color:#6b7280}.footer-note{text-align:center;color:#9ca3af;font-size:12px;padding:20px}
-@media(max-width:900px){.grid,.row,.cards,.split{grid-template-columns:1fr}.side{position:static}.wrap{padding:14px}.top{padding:0 14px}.cards{grid-template-columns:1fr}.mockups img{width:120px}}
+@media(max-width:900px){.grid,.row,.cards,.split,.usage-grid{grid-template-columns:1fr}.side{position:static}.wrap{padding:14px}.top{padding:0 14px}.cards{grid-template-columns:1fr}.mockups img{width:120px}}
 </style>
 </head>
 <body>
@@ -62,6 +63,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
       <section class="panel">
         <h1>Solo Ads Funnel Builder</h1>
         <p class="sub">Turn any affiliate offer into a complete solo ad funnel with buyer bonuses, opt-in copy, bridge-page assets, email follow-up, and downloadable promo materials.</p>
+        <div id="usage-box"></div>
         <div id="status"></div>
       </section>
 
@@ -222,6 +224,7 @@ var steps = [
 function init(){
   renderSteps();
   me();
+  loadUsage();
 }
 
 async function me(){
@@ -232,6 +235,22 @@ async function me(){
   if(!data.access || (!data.access.solo_ads && !data.access.is_admin)){
     showStatus('This account does not have Solo Ads access yet.', 'error');
   }
+}
+
+async function loadUsage(){
+  try{
+    var res = await fetch('/api/usage/me', { credentials:'include' });
+    var data = await res.json();
+    if(!data.success) return;
+    var s = data.summary || {};
+    document.getElementById('usage-box').innerHTML =
+      '<div class="usage-grid">'+
+      '<div class="usage-item"><div class="usage-label">This Month</div><div class="usage-value">'+(s.total_events||0)+'</div></div>'+
+      '<div class="usage-item"><div class="usage-label">Successful</div><div class="usage-value">'+(s.success||0)+'</div></div>'+
+      '<div class="usage-item"><div class="usage-label">Failed</div><div class="usage-value">'+(s.failed||0)+'</div></div>'+
+      '<div class="usage-item"><div class="usage-label">Est. Tokens</div><div class="usage-value">'+formatNum((s.estimated_input_tokens||0)+(s.estimated_output_tokens||0))+'</div></div>'+
+      '</div>';
+  }catch(e){}
 }
 
 function renderSteps(){
@@ -269,6 +288,7 @@ async function api(url, body){
     var data = await res.json();
     if(!data.success) throw new Error(friendlyError(data.message || 'Something went wrong'));
     showStatus('Done. Review the output and approve when ready.', 'ok');
+    loadUsage();
     return data;
   } finally {
     setWorking(false);
@@ -603,6 +623,7 @@ async function logout(){
 function id(){ return state.project && state.project.id; }
 function val(id){ return document.getElementById(id).value.trim(); }
 function esc(s){ var d=document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function formatNum(n){ return Number(n||0).toLocaleString(); }
 
 init();
 </script>
