@@ -98,3 +98,371 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
               <button class="btn secondary" onclick="downloadCurrentBonus()">Download DOCX</button>
               <button class="btn light" onclick="approveCurrentBonus()">Approve and Continue</button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel view hidden" id="view-stack">
+        <h2>5. Bonus Stack Summary</h2>
+        <div id="stack-box"></div>
+        <div class="actions">
+          <button class="btn" onclick="generateStack()">Generate / Redo Stack Summary</button>
+          <button class="btn secondary" onclick="go(5)">Approve and Continue</button>
+        </div>
+      </section>
+
+      <section class="panel view hidden" id="view-lead">
+        <h2>6. Lead Magnet</h2>
+        <p class="sub">Choose whether to add a lead magnet to the opt-in page.</p>
+        <div class="actions">
+          <button class="btn" onclick="generateLeadMagnet()">Yes, Create Lead Magnet</button>
+          <button class="btn secondary" onclick="skipLeadMagnet()">No, Skip Lead Magnet</button>
+          <button class="btn light" onclick="downloadLeadMagnet()">Download Lead Magnet DOCX</button>
+        </div>
+        <div id="lead-box"></div>
+      </section>
+
+      <section class="panel view hidden" id="view-optin">
+        <h2>7. Opt-In Page Copy</h2>
+        <div id="optin-box"></div>
+        <div class="actions">
+          <button class="btn" onclick="generateOptin()">Generate / Redo Opt-In Copy</button>
+          <button class="btn secondary" onclick="downloadTextDoc('OptIn.docx','Opt-In Page', '', 'Opt-In Copy', optinText())">Download DOCX</button>
+          <button class="btn light" onclick="go(7)">Approve and Continue</button>
+        </div>
+      </section>
+
+      <section class="panel view hidden" id="view-bridge">
+        <h2>8. Bridge Page</h2>
+        <label>Bridge Format</label>
+        <select id="bridge_format">
+          <option value="text">Text-only copy</option>
+          <option value="vsl">Video script plus text copy</option>
+          <option value="short">Short intro blurb</option>
+        </select>
+        <div id="bridge-box"></div>
+        <div class="actions">
+          <button class="btn" onclick="generateBridge()">Generate / Redo Bridge Page</button>
+          <button class="btn secondary" onclick="downloadTextDoc('BridgePage.docx','Bridge Page', '', 'Bridge Copy', bridgeText())">Download DOCX</button>
+          <button class="btn light" onclick="go(8)">Approve and Continue</button>
+        </div>
+      </section>
+
+      <section class="panel view hidden" id="view-emails">
+        <h2>9. Email Sequences</h2>
+        <div id="emails-box"></div>
+        <div class="actions">
+          <button class="btn" onclick="generateEmails()">Generate / Redo Emails</button>
+          <button class="btn secondary" onclick="downloadTextDoc('EmailSequence_NonBuyers.docx','Non-Buyer Email Sequence', '', 'Email Sequence', emailsText('non_buyers'))">Download Non-Buyers DOCX</button>
+          <button class="btn secondary" onclick="downloadTextDoc('EmailSequence_Buyers.docx','Buyer Email Sequence', '', 'Email Sequence', emailsText('buyers'))">Download Buyers DOCX</button>
+        </div>
+      </section>
+
+      <div class="footer-note">PromoLab by Jimmy Griffith, JGAffiliate</div>
+    </main>
+  </div>
+</div>
+
+<script>
+var state = {
+  step: 0,
+  project: null,
+  analysis: null,
+  angle: '',
+  bonusPlan: null,
+  bonuses: [],
+  currentBonus: 0,
+  stack: null,
+  leadMagnet: null,
+  optin: null,
+  bridge: null,
+  emails: null
+};
+
+var steps = [
+  'Setup',
+  'Analysis',
+  'Bonus Plan',
+  'Bonuses',
+  'Stack',
+  'Lead Magnet',
+  'Opt-In',
+  'Bridge',
+  'Emails'
+];
+
+function init(){
+  renderSteps();
+  me();
+}
+
+async function me(){
+  var res = await fetch('/me', { credentials:'include' });
+  var data = await res.json();
+  if(!data.success){ location.href='/login.html'; return; }
+  document.getElementById('user-email').textContent = data.user.email;
+  if(!data.access || (!data.access.solo_ads && !data.access.is_admin)){
+    showStatus('This account does not have Solo Ads access yet.', 'error');
+  }
+}
+
+function renderSteps(){
+  document.getElementById('steps').innerHTML = steps.map(function(s,i){
+    return '<div class="step '+(state.step===i?'active ':'')+(i<state.step?'done':'')+'" onclick="go('+i+')"><div class="num">'+(i+1)+'</div><div>'+s+'</div></div>';
+  }).join('');
+}
+
+function go(i){
+  state.step = i;
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.add('hidden'); });
+  document.getElementById('view-' + ['setup','analysis','plan','bonuses','stack','lead','optin','bridge','emails'][i]).classList.remove('hidden');
+  renderSteps();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+function showStatus(msg,type){
+  document.getElementById('status').innerHTML = msg ? '<div class="alert '+(type||'info')+'">'+esc(msg)+'</div>' : '';
+}
+
+function loading(msg){
+  showStatus('<span class="loading"><span class="spin"></span>'+esc(msg||'Working...')+'</span>', 'info');
+}
+
+async function api(url, body){
+  loading('Generating. This can take a minute...');
+  var res = await fetch(url, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body||{}) });
+  var data = await res.json();
+  if(!data.success) throw new Error(data.message || 'Something went wrong');
+  showStatus('Done. Review the output and approve when ready.', 'ok');
+  return data;
+}
+
+async function analyzeOffer(){
+  try{
+    var data = await api('/api/solo/analyze', {
+      url: val('url'),
+      pasted_text: val('pasted_text'),
+      affiliate_link: val('affiliate_link'),
+      audience_note: val('audience_note'),
+      tone_note: val('tone_note')
+    });
+    state.project = data.project;
+    state.analysis = data.analysis;
+    state.angle = data.analysis.recommended_angle;
+    renderAnalysis();
+    go(1);
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function renderAnalysis(){
+  var a = state.analysis || {};
+  document.getElementById('analysis-box').innerHTML = '<div class="output">'+
+    'PRODUCT: '+esc(a.product_name)+'\n'+
+    'NICHE: '+esc(a.niche)+'\n'+
+    'MAIN PROMISE: '+esc(a.main_promise)+'\n'+
+    'MAIN PAIN POINT: '+esc(a.main_pain_point)+'\n\n'+
+    'TARGET AUDIENCE:\n'+esc(a.target_audience)+'\n\n'+
+    'AUDIENCE PSYCHOLOGY:\n'+esc(a.audience_psychology)+'\n\n'+
+    'VALUE GAPS:\n- '+esc((a.value_gaps||[]).join('\n- '))+'\n\n'+
+    'RECOMMENDED ANGLE: '+esc(a.recommended_angle)+'\n'+
+    esc(a.angle_reason)+
+    '</div>';
+  var angleData = [
+    ['Consultative/Pathfinder Angle','Best for overwhelmed audiences. Makes the offer feel like the clear path.'],
+    ['Pain & Agitation Angle','Best for people stuck using broken methods. Focuses on frustration and relief.'],
+    ['Pure Value & Bonus Angle','Best for competitive offers. Makes the bonus stack the buying reason.']
+  ];
+  document.getElementById('angle-cards').innerHTML = angleData.map(function(x){
+    return '<div class="angle '+(state.angle===x[0]?'selected':'')+'" onclick="selectAngle(\''+x[0]+'\')"><h3>'+x[0]+'</h3><p class="sub">'+x[1]+'</p></div>';
+  }).join('');
+}
+
+function selectAngle(angle){
+  state.angle = angle;
+  renderAnalysis();
+}
+
+async function saveAngleAndContinue(){
+  try{
+    if(state.project) await api('/api/solo/project/'+state.project.id+'/angle', { angle: state.angle });
+    await generateBonusPlan();
+    go(2);
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+async function generateBonusPlan(){
+  try{
+    var data = await api('/api/solo/bonus-plan', { project_id: id(), analysis: state.analysis, angle: state.angle });
+    state.bonusPlan = data.plan;
+    renderBonusPlan();
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function renderBonusPlan(){
+  var bonuses = (state.bonusPlan && state.bonusPlan.bonuses) || [];
+  document.getElementById('bonus-plan-box').innerHTML = '<div class="cards">'+bonuses.map(function(b){
+    return '<div class="card"><h3>'+esc(b.number)+'. '+esc(b.title)+'</h3><p><b>'+esc(b.type)+'</b></p><p>'+esc(b.description)+'</p><p><b>Gap:</b> '+esc(b.value_gap_filled)+'</p></div>';
+  }).join('')+'</div>';
+  renderBonusTabs();
+}
+
+function renderBonusTabs(){
+  var bonuses = (state.bonusPlan && state.bonusPlan.bonuses) || [];
+  document.getElementById('bonus-tabs').innerHTML = bonuses.map(function(b,i){
+    var done = state.bonuses[i] ? ' - done' : '';
+    return '<div class="mini '+(state.currentBonus===i?'active':'')+'" onclick="state.currentBonus='+i+';renderBonusWork();renderBonusTabs()">Bonus '+(i+1)+done+'<br><span class="small">'+esc(b.type)+'</span></div>';
+  }).join('');
+  renderBonusWork();
+}
+
+function renderBonusWork(){
+  var b = state.bonuses[state.currentBonus];
+  var plan = state.bonusPlan && state.bonusPlan.bonuses ? state.bonusPlan.bonuses[state.currentBonus] : null;
+  if(!plan){ document.getElementById('bonus-work').innerHTML = '<div class="alert info">Approve a bonus plan first.</div>'; return; }
+  if(!b){ document.getElementById('bonus-work').innerHTML = '<div class="alert info">Ready to generate '+esc(plan.title)+'.</div>'; return; }
+  document.getElementById('bonus-work').innerHTML =
+    '<div class="mockups"><img src="'+b.cover_image+'" alt="Bonus cover"></div>'+
+    '<h2 style="margin-top:14px">'+esc(b.title)+'</h2><p class="sub">'+esc(b.description)+'</p>'+
+    '<div class="output">'+esc(b.full_content)+'</div>';
+}
+
+async function generateCurrentBonus(){
+  try{
+    var plan = state.bonusPlan.bonuses[state.currentBonus];
+    var data = await api('/api/solo/bonus', { project_id:id(), analysis:state.analysis, angle:state.angle, bonus:plan });
+    state.bonuses[state.currentBonus] = data.bonus;
+    renderBonusTabs();
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function approveCurrentBonus(){
+  if(!state.bonuses[state.currentBonus]){ showStatus('Generate this bonus before approving it.','error'); return; }
+  if(state.currentBonus < 2){ state.currentBonus++; renderBonusTabs(); }
+  else { go(4); }
+}
+
+async function generateStack(){
+  try{
+    var data = await api('/api/solo/bonus-stack', { project_id:id(), analysis:state.analysis, angle:state.angle, bonuses:state.bonuses });
+    state.stack = data.stack;
+    renderStack();
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function renderStack(){
+  if(!state.stack){ document.getElementById('stack-box').innerHTML = '<div class="alert info">Generate the approved stack summary.</div>'; return; }
+  document.getElementById('stack-box').innerHTML = '<img class="wide-img" src="'+state.stack.stack_image+'"><h2 style="margin-top:14px">'+esc(state.stack.headline)+'</h2><div class="output">'+esc(state.stack.summary)+'\n\n- '+esc((state.stack.bullets||[]).join('\n- '))+'</div>';
+}
+
+async function generateLeadMagnet(){
+  try{
+    var data = await api('/api/solo/lead-magnet', { project_id:id(), analysis:state.analysis, angle:state.angle });
+    state.leadMagnet = data.lead_magnet;
+    renderLead();
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function skipLeadMagnet(){
+  state.leadMagnet = null;
+  document.getElementById('lead-box').innerHTML = '<div class="alert ok">Lead magnet skipped. Continue to opt-in copy.</div>';
+  go(6);
+}
+
+function renderLead(){
+  if(!state.leadMagnet){ document.getElementById('lead-box').innerHTML=''; return; }
+  var l = state.leadMagnet;
+  document.getElementById('lead-box').innerHTML = '<div class="mockups"><img src="'+l.cover_image+'"></div><h2 style="margin-top:14px">'+esc(l.title)+'</h2><p class="sub">'+esc(l.subtitle)+'</p><div class="output">'+esc(l.full_content)+'</div><div class="actions"><button class="btn light" onclick="go(6)">Approve and Continue</button></div>';
+}
+
+async function generateOptin(){
+  try{
+    var data = await api('/api/solo/optin', { project_id:id(), analysis:state.analysis, angle:state.angle, lead_magnet:state.leadMagnet });
+    state.optin = data.optin;
+    renderOptin();
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function renderOptin(){
+  if(!state.optin){ document.getElementById('optin-box').innerHTML = '<div class="alert info">Generate opt-in page copy.</div>'; return; }
+  document.getElementById('optin-box').innerHTML = '<div class="output">'+esc(optinText())+'</div>';
+}
+
+async function generateBridge(){
+  try{
+    var data = await api('/api/solo/bridge', { project_id:id(), analysis:state.analysis, angle:state.angle, bridge_format:val('bridge_format'), bonuses:state.bonuses, bonus_stack:state.stack, lead_magnet:state.leadMagnet });
+    state.bridge = data.bridge;
+    renderBridge();
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function renderBridge(){
+  if(!state.bridge){ document.getElementById('bridge-box').innerHTML = '<div class="alert info">Generate bridge page copy.</div>'; return; }
+  document.getElementById('bridge-box').innerHTML = '<div class="output">'+esc(bridgeText())+'</div>';
+}
+
+async function generateEmails(){
+  try{
+    var data = await api('/api/solo/emails', { project_id:id(), analysis:state.analysis, angle:state.angle, bonuses:state.bonuses, lead_magnet:state.leadMagnet });
+    state.emails = data.emails;
+    renderEmails();
+  }catch(e){ showStatus(e.message,'error'); }
+}
+
+function renderEmails(){
+  if(!state.emails){ document.getElementById('emails-box').innerHTML = '<div class="alert info">Generate segmented emails.</div>'; return; }
+  document.getElementById('emails-box').innerHTML = '<h2>Non-Buyers</h2><div class="output">'+esc(emailsText('non_buyers'))+'</div><h2 style="margin-top:18px">Buyers</h2><div class="output">'+esc(emailsText('buyers'))+'</div>';
+}
+
+function optinText(){
+  var o = state.optin || {};
+  return 'Headline Version A: '+(o.headline_a||'')+'\nHeadline Version B: '+(o.headline_b||'')+'\nSubheadline: '+(o.subheadline||'')+'\nForm: '+((o.form_fields||[]).join(' + '))+'\nCTA: '+(o.cta_button||'')+'\n\nBelow The Fold:\n- '+((o.below_fold_bullets||[]).join('\n- '))+'\n\nTrust: '+(o.trust_element||'')+'\nPrivacy: '+(o.privacy_statement||'')+'\n\nDesign Notes:\n- '+((o.design_notes||[]).join('\n- '));
+}
+
+function bridgeText(){
+  var b = state.bridge || {};
+  return 'Headline: '+(b.headline||'')+'\nSubheadline: '+(b.subheadline||'')+'\n\nConfirmation Section:\n'+(b.confirmation_section||'')+'\n\nBridge Content:\n'+(b.bridge_content||'')+'\n\nVideo Script:\n'+(b.video_script||'')+'\n\nCTA: '+(b.cta_text||'')+'\nBonus Claim Note: '+(b.bonus_claim_note||'')+'\n\nExit Intent Popup:\n'+JSON.stringify(b.exit_intent_popup||{}, null, 2);
+}
+
+function emailsText(type){
+  var arr = state.emails && state.emails[type] ? state.emails[type] : [];
+  return arr.map(function(e){
+    return 'Day '+e.day+' - '+(e.purpose||'')+'\nSubject lines:\n1. '+(e.subject_lines||[])[0]+'\n2. '+(e.subject_lines||[])[1]+'\n3. '+(e.subject_lines||[])[2]+'\n\n'+(e.body||'');
+  }).join('\n\n-----------------------------\n\n');
+}
+
+function downloadCurrentBonus(){
+  var b = state.bonuses[state.currentBonus];
+  if(!b){ showStatus('Generate this bonus first.','error'); return; }
+  downloadTextDoc('Bonus-'+b.number+'.docx', b.title, b.tagline || b.type, 'Exclusive Buyer Bonus #'+b.number, b.full_content);
+}
+
+function downloadLeadMagnet(){
+  var l = state.leadMagnet;
+  if(!l){ showStatus('Generate the lead magnet first.','error'); return; }
+  downloadTextDoc('Lead-Magnet.docx', l.title, l.subtitle, 'Free Guide', l.full_content);
+}
+
+async function downloadTextDoc(filename,title,subtitle,type,content){
+  if(!content){ showStatus('There is no content to download yet.','error'); return; }
+  var res = await fetch('/api/download/docx', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ filename:filename, title:title, subtitle:subtitle, type:type, content:content }) });
+  if(!res.ok){ showStatus('Download failed.','error'); return; }
+  var blob = await res.blob();
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function logout(){
+  await fetch('/logout', { method:'POST', credentials:'include' });
+  location.href = '/login.html';
+}
+
+function id(){ return state.project && state.project.id; }
+function val(id){ return document.getElementById(id).value.trim(); }
+function esc(s){ var d=document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+init();
+</script>
+</body>
+</html>
