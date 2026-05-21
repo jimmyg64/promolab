@@ -241,6 +241,65 @@ function stackImage(bonuses) {
   return svgUri(`<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900"><defs><radialGradient id="g" cx="50%" cy="32%" r="70%"><stop offset="0" stop-color="#1e3a8a" stop-opacity=".62"/><stop offset="1" stop-color="#07111f"/></radialGradient><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000" flood-opacity=".55"/></filter></defs><rect width="1400" height="900" fill="url(#g)"/><circle cx="230" cy="170" r="4" fill="#f8c75a" opacity=".8"/><circle cx="1120" cy="220" r="5" fill="#dbeafe" opacity=".6"/><circle cx="1030" cy="740" r="3" fill="#f8c75a" opacity=".75"/><ellipse cx="650" cy="560" rx="520" ry="70" fill="#000" opacity=".35"/><text x="650" y="105" text-anchor="middle" font-family="Arial" font-size="50" font-weight="900" fill="#f8c75a">EXCLUSIVE BONUS PACKAGE</text><text x="650" y="150" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#dbeafe">Three buyer-only resources that make the main offer easier to use</text><g transform="translate(120 0)">${cards}</g></svg>`);
 }
 
+async function generateAiImage(prompt) {
+  if (!process.env.OPENAI_API_KEY) return null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 65000);
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1',
+        prompt,
+        size: '1024x1024',
+        quality: 'high',
+        n: 1
+      })
+    });
+    clearTimeout(timer);
+    if (!response.ok) {
+      console.log('OpenAI image failed:', response.status, await response.text());
+      return null;
+    }
+    const data = await response.json();
+    const b64 = data && data.data && data.data[0] && data.data[0].b64_json;
+    return b64 ? 'data:image/png;base64,' + b64 : null;
+  } catch (err) {
+    console.log('OpenAI image error:', err.message);
+    return null;
+  }
+}
+
+async function createCoverImage(asset) {
+  const fallback = coverImage(asset);
+  const prompt = `Create a premium 3D digital product mockup for an affiliate marketing bonus.
+Use a polished book/guide cover on a dark studio background with dramatic lighting, realistic shadows, glossy reflections, and a high-value SaaS/course bonus feel.
+Make the cover clean and readable. Use this exact main title as the central cover text: "${asset.title}".
+Use this small label near the top: "${asset.badge || 'EXCLUSIVE BONUS'}".
+Use this supporting line if it fits cleanly: "${asset.subtitle || ''}".
+Avoid clutter. Avoid fake author names. Avoid tiny unreadable paragraphs. No people, no faces, no watermarks.`;
+  return await generateAiImage(prompt) || fallback;
+}
+
+async function createStackImage(bonuses) {
+  const fallback = stackImage(bonuses);
+  const bonusText = (bonuses || []).map((b, i) => `Bonus ${i + 1}: ${b.title} - ${b.description || b.tagline || b.type}`).join('\n');
+  const prompt = `Create a premium promotional bundle image for an affiliate bridge page.
+Scene: three 3D book/guide mockups arranged as a high-value bonus stack on a dark navy studio background with gold highlights, realistic shadows, reflections, and polished marketing design.
+Top headline text: "EXCLUSIVE BONUS PACKAGE".
+Each book should look distinct but cohesive.
+Under each book, include a short readable description panel.
+Use these bonus titles and descriptions:
+${bonusText}
+Avoid people, faces, watermarks, distorted gibberish, and clutter. Make it look like a premium digital product bundle used to sell affiliate bonuses.`;
+  return await generateAiImage(prompt) || fallback;
+}
+
 function p(text, opts = {}) {
   return new Paragraph({
     alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT,
@@ -543,7 +602,7 @@ Return JSON:
   "description": "",
   "full_content": ""
 }`, 7000);
-    full.cover_image = coverImage({
+    full.cover_image = await createCoverImage({
       title: full.title,
       subtitle: full.tagline || full.type,
       badge: full.type || `BONUS ${full.number}`,
@@ -575,7 +634,7 @@ Return JSON:
   "summary": "About 300 words. Sell the stack as the reason to buy through this affiliate link today.",
   "bullets": ["", "", ""]
 }`, 1800);
-    summary.stack_image = stackImage(bonuses);
+    summary.stack_image = await createStackImage(bonuses);
     await saveContent(user.id, project_id, 'bonus_stack', summary);
     res.json({ success: true, stack: summary });
   } catch (err) {
@@ -608,7 +667,7 @@ Return JSON:
   "description": "",
   "full_content": ""
 }`, 8000);
-    lm.cover_image = coverImage({ title: lm.title, subtitle: lm.subtitle, badge: 'FREE GUIDE', theme: 'green' });
+    lm.cover_image = await createCoverImage({ title: lm.title, subtitle: lm.subtitle, badge: 'FREE GUIDE', theme: 'green' });
     await saveContent(user.id, project_id, 'lead_magnet', lm);
     res.json({ success: true, lead_magnet: lm });
   } catch (err) {
