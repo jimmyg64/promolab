@@ -3,145 +3,140 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — PromoLab</title>
+<title>PromoLab Admin</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#F0F0F8;color:#1A1A2E;min-height:100vh;padding:24px 16px}
-.wrapper{max-width:680px;margin:0 auto}
-.topbar{background:#1A1A2E;border-radius:10px 10px 0 0;padding:16px 24px;color:#fff;display:flex;align-items:center;justify-content:space-between}
-.brand-name{font-size:17px;font-weight:700}
-.back-link{font-size:12px;color:#AAAACC;text-decoration:none}
-.back-link:hover{color:#fff}
-.card{background:#fff;border-radius:0 0 10px 10px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:16px}
-.card.solo{border-radius:10px}
-.section-label{font-size:11px;font-weight:700;color:#4F46B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #EEEDFE}
-label{font-size:13px;color:#555;display:block;margin-bottom:4px;font-weight:700}
-input{width:100%;padding:10px 14px;border:1px solid #D0CFEE;border-radius:7px;font-size:13px;margin-bottom:14px;font-family:Arial,sans-serif}
-input:focus{outline:none;border-color:#4F46B8}
-.checkbox-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F8;font-size:13px}
-.checkbox-row:last-child{border-bottom:none}
-.checkbox-row input[type=checkbox]{width:auto;margin:0}
-.checkbox-label{flex:1}
-.checkbox-price{font-size:11px;color:#888}
-.primary-btn{background:#4F46B8;color:#fff;border:none;border-radius:8px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;width:100%}
-.primary-btn:hover{background:#3C3489}
-.alert{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:12px;font-weight:700;display:none}
-.alert-success{background:#EAF3DE;color:#1D6A3A}
-.alert-error{background:#FCEBEB;color:#7A1010}
-.user-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F0F0F8;font-size:13px;flex-wrap:wrap}
-.user-row:last-child{border-bottom:none}
-.user-email{flex:1;font-weight:700;font-size:12px}
-.access-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-.dot-on{background:#1D9E75}
-.dot-off{background:#ddd}
-.access-label{font-size:10px;color:#888;margin-left:2px;margin-right:8px}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f3fb;color:#111827}
+.top{height:64px;background:#101325;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.brand{font-weight:900;font-size:18px}.brand span{color:#8b7cff}.links{display:flex;gap:10px;align-items:center}
+a{color:#4f46b8;text-decoration:none;font-weight:800}.top a{color:#fff}
+.wrap{max-width:1180px;margin:0 auto;padding:24px}
+.panel{background:#fff;border:1px solid #e6e8f5;border-radius:10px;padding:20px;margin-bottom:18px;box-shadow:0 2px 10px rgba(17,24,39,.04)}
+h1{margin:0 0 6px;font-size:25px}h2{font-size:18px;margin:0 0 14px;color:#1f2370}.sub{color:#6b7280;font-size:13px;line-height:1.5;margin:0 0 16px}
+.alert{padding:12px 14px;border-radius:8px;font-size:13px;font-weight:700;margin:12px 0}.ok{background:#dcfce7;color:#166534}.error{background:#fee2e2;color:#7f1d1d}.info{background:#eef0ff;color:#3730a3}
+button{font-family:inherit}.btn{border:0;background:#4f46b8;color:#fff;border-radius:7px;padding:10px 14px;font-size:13px;font-weight:900;cursor:pointer}.btn.secondary{background:#fff;color:#4f46b8;border:1px solid #d7d5ff}
+input,select{width:100%;border:1px solid #d9dcef;border-radius:7px;padding:9px 10px;font-size:13px;background:#fff}
+table{width:100%;border-collapse:separate;border-spacing:0 10px}th{text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;padding:0 10px}td{background:#fbfbff;border-top:1px solid #e6e8f5;border-bottom:1px solid #e6e8f5;padding:12px 10px;font-size:13px;vertical-align:middle}td:first-child{border-left:1px solid #e6e8f5;border-radius:9px 0 0 9px}td:last-child{border-right:1px solid #e6e8f5;border-radius:0 9px 9px 0}
+.email{font-weight:900;color:#111827}.muted{color:#6b7280;font-size:12px;margin-top:3px}.checks{display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:6px}.check{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#374151}.check input{width:auto}.row{display:grid;grid-template-columns:1fr 130px;gap:8px}
+.usage{font-size:12px;color:#4b5563;line-height:1.45}
+@media(max-width:900px){.wrap{padding:14px}table,thead,tbody,tr,td,th{display:block}thead{display:none}tr{background:#fbfbff;border:1px solid #e6e8f5;border-radius:9px;margin-bottom:12px;padding:10px}td{border:0!important;border-radius:0!important;background:transparent;padding:8px 0}.checks{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="wrapper">
-  <div class="topbar">
-    <div class="brand-name">PromoLab Admin</div>
-    <a href="/app.html" class="back-link">&larr; Back to app</a>
-  </div>
-
-  <div class="card">
-    <div class="section-label">Grant or update user access</div>
-    <div id="grant-alert" class="alert"></div>
-    <label>User email address</label>
-    <input type="email" id="target-email" placeholder="user@example.com">
-    <div style="margin-bottom:14px">
-      <div class="checkbox-row">
-        <input type="checkbox" id="ch-facebook" checked>
-        <span class="checkbox-label">Facebook promo generator</span>
-        <span class="checkbox-price">Included with base ($27)</span>
-      </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="ch-solo">
-        <span class="checkbox-label">Solo ads funnel builder</span>
-        <span class="checkbox-price">Upgrade — $17</span>
-      </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="ch-email">
-        <span class="checkbox-label">Email sequence generator</span>
-        <span class="checkbox-price">Upgrade — $17</span>
-      </div>
-      <div class="checkbox-row">
-        <input type="checkbox" id="ch-launch">
-        <span class="checkbox-label">Launchjacking kit</span>
-        <span class="checkbox-price">Upgrade — $17</span>
-      </div>
-    </div>
-    <button class="primary-btn" onclick="grantAccess()">Save access &rarr;</button>
-  </div>
-
-  <div class="card solo" id="users-card">
-    <div class="section-label">All users & access</div>
-    <div id="users-list"><div style="color:#888;font-size:13px">Loading...</div></div>
-  </div>
+<div class="top">
+  <div class="brand">Promo<span>Lab</span> Admin</div>
+  <div class="links"><a href="/app.html">App</a><button class="btn secondary" onclick="logout()">Logout</button></div>
 </div>
-
+<div class="wrap">
+  <section class="panel">
+    <h1>User Access & Plans</h1>
+    <p class="sub">Manage module access, plan names, and monthly generation limits. Leave monthly limit blank to use the app default. Admin users are unlimited.</p>
+    <div id="status"></div>
+    <div class="actions"><button class="btn" onclick="loadUsers()">Refresh Users</button></div>
+  </section>
+  <section class="panel">
+    <h2>Users</h2>
+    <div id="users-box"><div class="alert info">Loading users...</div></div>
+  </section>
+</div>
 <script>
-async function grantAccess(){
-  var email = document.getElementById('target-email').value.trim();
-  if(!email){ showAlert('grant-alert','Please enter a user email.','alert-error'); return; }
+var users = [];
+var accessRows = [];
+var usageRows = [];
 
-  var payload = {
-    target_email: email,
-    facebook: document.getElementById('ch-facebook').checked,
-    solo_ads: document.getElementById('ch-solo').checked,
-    email_sequence: document.getElementById('ch-email').checked,
-    launchjacking: document.getElementById('ch-launch').checked
-  };
-
-  try{
-    var res = await fetch('/api/admin/access', {
-      method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    var data = await res.json();
-    if(data.success){
-      showAlert('grant-alert','Access updated for '+email,'alert-success');
-      document.getElementById('target-email').value='';
-      loadUsers();
-    } else {
-      showAlert('grant-alert', data.message || 'Failed to update access.','alert-error');
-    }
-  } catch(e){ showAlert('grant-alert','Network error.','alert-error'); }
+async function init(){
+  await loadUsers();
 }
 
 async function loadUsers(){
+  show('Loading users...', 'info');
   try{
-    var res = await fetch('/api/admin/users', {credentials:'include'});
+    var [uRes, usageRes] = await Promise.all([
+      fetch('/api/admin/users', { credentials:'include' }),
+      fetch('/api/admin/usage', { credentials:'include' })
+    ]);
+    var uData = await uRes.json();
+    var usageData = await usageRes.json();
+    if(!uData.success) throw new Error(uData.message || 'Could not load users');
+    users = uData.users || [];
+    accessRows = uData.access || [];
+    usageRows = usageData.success ? (usageData.usage || []) : [];
+    renderUsers();
+    show('', '');
+  }catch(e){
+    show(e.message, 'error');
+  }
+}
+
+function renderUsers(){
+  var html = '<table><thead><tr><th>User</th><th>Access</th><th>Plan</th><th>Usage</th><th>Save</th></tr></thead><tbody>';
+  html += users.map(function(u){
+    var a = accessRows.find(function(x){ return x.user_id === u.id; }) || {};
+    var usage = usageRows.filter(function(x){ return x.user_id === u.id; });
+    var success = usage.filter(function(x){ return x.status === 'success'; }).length;
+    var failed = usage.filter(function(x){ return x.status === 'failed'; }).length;
+    var tokens = usage.reduce(function(sum,x){ return sum + (x.estimated_input_tokens||0) + (x.estimated_output_tokens||0); }, 0);
+    return `<tr>
+      <td><div class="email">${esc(u.email)}</div><div class="muted">${esc(u.id)}</div></td>
+      <td><div class="checks">
+        ${checkbox(u.id,'solo_ads',a.solo_ads,'Solo Ads')}
+        ${checkbox(u.id,'facebook',a.facebook,'Facebook')}
+        ${checkbox(u.id,'email_sequence',a.email_sequence,'Email')}
+        ${checkbox(u.id,'launchjacking',a.launchjacking,'Launchjacking')}
+        ${checkbox(u.id,'affiliate_launch_guide',a.affiliate_launch_guide,'Launch Guide')}
+      </div></td>
+      <td><div class="row"><select id="plan_${u.id}">${planOptions(a.plan_name||'solo_ads_basic')}</select><input id="limit_${u.id}" type="number" min="0" placeholder="Limit" value="${a.monthly_generation_limit == null ? '' : a.monthly_generation_limit}"></div></td>
+      <td><div class="usage">Success: <b>${success}</b><br>Failed: <b>${failed}</b><br>Est. tokens: <b>${tokens.toLocaleString()}</b></div></td>
+      <td><button class="btn" onclick="saveUser('${escAttr(u.email)}','${escAttr(u.id)}')">Save</button></td>
+    </tr>`;
+  }).join('');
+  html += '</tbody></table>';
+  document.getElementById('users-box').innerHTML = html;
+}
+
+function checkbox(id, key, checked, label){
+  return '<label class="check"><input type="checkbox" id="'+key+'_'+id+'" '+(checked?'checked':'')+'> '+label+'</label>';
+}
+
+function planOptions(current){
+  var plans = ['solo_ads_basic','solo_ads_pro','all_access','admin'];
+  return plans.map(function(p){ return '<option value="'+p+'" '+(p===current?'selected':'')+'>'+p.replace(/_/g,' ')+'</option>'; }).join('');
+}
+
+async function saveUser(email,id){
+  try{
+    var body = {
+      target_email: email,
+      solo_ads: checked('solo_ads_'+id),
+      facebook: checked('facebook_'+id),
+      email_sequence: checked('email_sequence_'+id),
+      launchjacking: checked('launchjacking_'+id),
+      affiliate_launch_guide: checked('affiliate_launch_guide_'+id),
+      plan_name: val('plan_'+id),
+      monthly_generation_limit: val('limit_'+id)
+    };
+    var res = await fetch('/api/admin/access', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
     var data = await res.json();
-    if(data.success){
-      document.getElementById('users-list').innerHTML = data.users.length === 0
-        ? '<div style="color:#888;font-size:13px">No users yet.</div>'
-        : data.users.map(function(u){
-          return '<div class="user-row">'+
-            '<div class="user-email">'+(u.email||u.user_id)+'</div>'+
-            dot(u.facebook,'Facebook')+
-            dot(u.solo_ads,'Solo ads')+
-            dot(u.email_sequence,'Email')+
-            dot(u.launchjacking,'Launch')+
-            '</div>';
-        }).join('');
-    }
-  } catch(e){}
+    if(!data.success) throw new Error(data.message || 'Save failed');
+    show('Saved '+email, 'ok');
+    await loadUsers();
+  }catch(e){
+    show(e.message, 'error');
+  }
 }
 
-function dot(on, label){
-  return '<span><span class="access-dot '+(on?'dot-on':'dot-off')+'"></span><span class="access-label">'+label+'</span></span>';
+async function logout(){
+  await fetch('/logout', { method:'POST', credentials:'include' });
+  location.href = '/login.html';
 }
 
-function showAlert(id, msg, cls){
-  var el = document.getElementById(id);
-  el.textContent = msg;
-  el.className = 'alert '+cls;
-  el.style.display = 'block';
-}
+function checked(id){ return !!document.getElementById(id).checked; }
+function val(id){ return document.getElementById(id).value; }
+function show(msg,type){ document.getElementById('status').innerHTML = msg ? '<div class="alert '+type+'">'+esc(msg)+'</div>' : ''; }
+function esc(s){ var d=document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function escAttr(s){ return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
-loadUsers();
+init();
 </script>
 </body>
 </html>
