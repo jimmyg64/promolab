@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const { createClient } = require('@supabase/supabase-js');
 const Anthropic = require('@anthropic-ai/sdk');
 const fetch = require('node-fetch');
+const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, ShadingType } = require('docx');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,38 +31,23 @@ GLOBAL WRITING RULES:
 - Use short paragraphs. Use white space. Make content easy to scan and read.
 
 THE THREE ANGLES:
-1. Consultative/Pathfinder: Best for overwhelmed audiences. Position offer as the most logical, clear path. Guide them to the click as the obvious next step.
-2. Pain & Agitation: Best for audiences stuck using outdated/broken methods. Focus on frustration of current situation and present offer as instant relief.
-3. Pure Value & Bonus: Best for highly competitive offers. Stack immense value of the main offer alongside custom gap-filling bonuses to make purchase a no-brainer.
+1. Consultative/Pathfinder: Best for overwhelmed audiences. Position offer as the most logical, clear path.
+2. Pain & Agitation: Best for audiences stuck using outdated/broken methods. Focus on frustration and present offer as instant relief.
+3. Pure Value & Bonus: Best for highly competitive offers. Stack immense value alongside custom gap-filling bonuses.
 
-BONUS STRATEGY RULES:
-- Bonuses are PRIMARY conversion tools, not afterthoughts. They push leads over the edge to purchase.
-- Bonuses are STRICTLY for buyers only — never mention on opt-in page.
-- Fill the Value Gaps: Create bonuses that specifically fill missing pieces in the main offer.
-- Each bonus must solve one specific problem the main offer does not fully address.
-- Bonus content must be genuinely useful, not filler. Real steps. Real examples. Real value.
-
-OPT-IN PAGE RULES:
-- Goal: Capture contact details using curiosity and big promise. That is it.
-- NO bonuses mentioned — buyers only.
-- Ultra-concise above the fold: Headline + Sub-headline + CTA must fit one screen.
-- Always generate TWO headline variations (Version A and Version B) for A/B split testing.
-- Collect ONLY First Name and Email Address.
-- If a lead magnet exists, it is the primary incentive on the opt-in page.
-
-EMAIL SEQUENCE RULES (The Frequency Method):
-- Always generate THREE distinct subject line options per email.
-- Mix curiosity, direct benefit, and relatable question across the three options.
-- Non-Buyers Sequence: Day 1 thank you + soft link, Day 2 story/solution, Day 3 offer + bonuses hard pitch, Day 4 authority + scarcity final push.
-- Buyers Sequence: Day 1 welcome + bonus delivery, Day 2 advanced tip, Day 3 introduce upsell, Day 4 upsell benefits.
-- Write emails in full. Every word matters. No placeholder sentences.
+BONUS & LEAD MAGNET CONTENT RULES:
+- Content must be genuinely valuable — not filler, not vague advice
+- Use clear headers, numbered steps, bullet points, real examples
+- Write like an expert coaching a friend — specific, direct, practical
+- Every section must give the reader something they can immediately use
+- Format for readability: short paragraphs, white space, scannable structure
+- These are standalone deliverables — they must feel premium and complete
 `;
 
 // ── Auth helpers ──────────────────────────────────────────────
 function cookieOptions() {
   return { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60*60*24*7*1000, path: '/' };
 }
-
 async function getCurrentUser(req) {
   const token = req.cookies && req.cookies.sb_access_token;
   if (!token) return null;
@@ -71,93 +57,152 @@ async function getCurrentUser(req) {
     return data.user;
   } catch { return null; }
 }
-
 async function requireUser(req, res) {
   const user = await getCurrentUser(req);
   if (!user) { res.status(401).json({ success: false, message: 'Not logged in' }); return null; }
   if (!user.email_confirmed_at) { res.status(403).json({ success: false, message: 'Please confirm your email' }); return null; }
   return user;
 }
-
 async function getUserAccess(userId) {
   const { data } = await adminClient.from('promolab_access').select('*').eq('user_id', userId).single();
   return data || { solo_ads: false, facebook: false, email_sequence: false, launchjacking: false, affiliate_launch_guide: false };
 }
 
-// ── Image generation via DALL-E 3 ─────────────────────────────
-async function generateCoverImage(prompt) {
-  if (!process.env.OPENAI_API_KEY) return null;
-  try {
-    const imgTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000));
-    const imgFetch = fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: prompt,
-        n: 1,
-        size: '1024x1024',
-        response_format: 'b64_json'
-      })
-    });
-    const response = await Promise.race([imgFetch, imgTimeout]);
-    if (!response.ok) {
-      const err = await response.text();
-      console.log('DALL-E error:', response.status, err);
-      return null;
-    }
-    const data = await response.json();
-    if (data.data && data.data[0] && data.data[0].b64_json) {
-      return 'data:image/png;base64,' + data.data[0].b64_json;
-    }
-    return null;
-  } catch(e) {
-    console.log('Image generation failed:', e.message);
-    return null;
-  }
-}
-
-// ── Fallback: Stability AI ────────────────────────────────────
-async function generateCoverImageStability(prompt) {
-  if (!process.env.STABILITY_API_KEY) return null;
-  try {
-    const imgTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 25000));
-    const imgFetch = fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + process.env.STABILITY_API_KEY,
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        text_prompts: [
-          { text: prompt + ', professional digital product cover, clean typography, high contrast, no people, no faces', weight: 1 },
-          { text: 'blurry, low quality, text errors, watermark, people, faces', weight: -1 }
-        ],
-        cfg_scale: 7, height: 1024, width: 1024, samples: 1, steps: 25
-      })
-    });
-    const response = await Promise.race([imgFetch, imgTimeout]);
-    if (!response.ok) { console.log('Stability error:', response.status); return null; }
-    const data = await response.json();
-    if (data.artifacts && data.artifacts[0]) {
-      return 'data:image/png;base64,' + data.artifacts[0].base64;
-    }
-    return null;
-  } catch(e) {
-    console.log('Stability failed:', e.message);
-    return null;
-  }
-}
-
+// ── DALL-E 3 image generation ─────────────────────────────────
 async function generateImage(prompt) {
-  // Try DALL-E 3 first, fall back to Stability AI
-  const dalleResult = await generateCoverImage(prompt);
-  if (dalleResult) return dalleResult;
-  return await generateCoverImageStability(prompt);
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 35000);
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY },
+        body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024', response_format: 'b64_json' })
+      });
+      clearTimeout(timer);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data[0] && data.data[0].b64_json) return 'data:image/png;base64,' + data.data[0].b64_json;
+      } else { console.log('DALL-E error:', response.status, await response.text()); }
+    } catch(e) { console.log('DALL-E failed:', e.message); }
+  }
+  // Fallback Stability AI
+  if (process.env.STABILITY_API_KEY) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 25000);
+      const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + process.env.STABILITY_API_KEY, 'Accept': 'application/json' },
+        body: JSON.stringify({ text_prompts: [{ text: prompt, weight: 1 }, { text: 'blurry, low quality, people, faces, watermark', weight: -1 }], cfg_scale: 7, height: 1024, width: 1024, samples: 1, steps: 25 })
+      });
+      clearTimeout(timer);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.artifacts && data.artifacts[0]) return 'data:image/png;base64,' + data.artifacts[0].base64;
+      }
+    } catch(e) { console.log('Stability failed:', e.message); }
+  }
+  return null;
+}
+
+// ── DOCX builder helpers ──────────────────────────────────────
+function makeParagraph(text, opts = {}) {
+  return new Paragraph({
+    alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT,
+    spacing: { before: opts.spaceBefore || 100, after: opts.spaceAfter || 100 },
+    children: [new TextRun({
+      text: text || '',
+      bold: opts.bold || false,
+      italic: opts.italic || false,
+      size: opts.size || 24,
+      color: opts.color || '1A1A2E',
+      font: 'Calibri'
+    })]
+  });
+}
+
+function makeHeading(text, level = 1) {
+  const sizes = { 1: 40, 2: 32, 3: 28 };
+  const colors = { 1: '1A1A2E', 2: '4F46B8', 3: '333333' };
+  return new Paragraph({
+    heading: level === 1 ? HeadingLevel.HEADING_1 : level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
+    spacing: { before: level === 1 ? 400 : 240, after: 160 },
+    children: [new TextRun({ text, bold: true, size: sizes[level] || 28, color: colors[level] || '1A1A2E', font: 'Calibri' })]
+  });
+}
+
+function makeBullet(text) {
+  return new Paragraph({
+    bullet: { level: 0 },
+    spacing: { before: 60, after: 60 },
+    children: [new TextRun({ text, size: 24, color: '333333', font: 'Calibri' })]
+  });
+}
+
+function makeDivider() {
+  return new Paragraph({
+    spacing: { before: 200, after: 200 },
+    border: { bottom: { color: '4F46B8', space: 1, style: BorderStyle.SINGLE, size: 6 } },
+    children: []
+  });
+}
+
+function makeCoverPage(title, subtitle, type, productName) {
+  return [
+    new Paragraph({ spacing: { before: 800, after: 200 }, alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: type.toUpperCase(), size: 20, color: 'AAAACC', font: 'Calibri', bold: true })] }),
+    new Paragraph({ spacing: { before: 0, after: 300 }, alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: title, size: 52, bold: true, color: '1A1A2E', font: 'Calibri' })] }),
+    new Paragraph({ spacing: { before: 0, after: 200 }, alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: subtitle || '', size: 28, italic: true, color: '555555', font: 'Calibri' })] }),
+    makeDivider(),
+    new Paragraph({ spacing: { before: 200, after: 100 }, alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'Exclusive bonus for buyers of ' + productName, size: 20, color: '4F46B8', font: 'Calibri' })] }),
+    new Paragraph({ spacing: { before: 0, after: 100 }, alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'PromoLab by Jimmy Griffith, JGAffiliate', size: 18, color: 'AAAACC', font: 'Calibri' })] }),
+    new Paragraph({ pageBreakBefore: true, children: [] })
+  ];
+}
+
+function parseContentToDocx(content, productName, title, subtitle, type) {
+  const children = [];
+  children.push(...makeCoverPage(title, subtitle, type, productName));
+
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) { children.push(new Paragraph({ spacing: { before: 60, after: 60 }, children: [] })); continue; }
+    if (trimmed.startsWith('### ')) { children.push(makeHeading(trimmed.slice(4), 3)); }
+    else if (trimmed.startsWith('## ')) { children.push(makeHeading(trimmed.slice(3), 2)); }
+    else if (trimmed.startsWith('# ')) { children.push(makeHeading(trimmed.slice(2), 1)); }
+    else if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) { children.push(makeBullet(trimmed.slice(2))); }
+    else if (/^\d+\.\s/.test(trimmed)) { children.push(makeBullet(trimmed)); }
+    else if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+      children.push(makeParagraph(trimmed.slice(2, -2), { bold: true, size: 26, spaceBefore: 160, spaceAfter: 80 }));
+    }
+    else { children.push(makeParagraph(trimmed, { spaceBefore: 80, spaceAfter: 80 })); }
+  }
+
+  children.push(makeDivider());
+  children.push(makeParagraph('© 2026 PromoLab · Jimmy Griffith, JGAffiliate · All rights reserved', { center: true, size: 18, color: 'AAAAAA', spaceBefore: 200 }));
+  return children;
+}
+
+// ── DOCX route helper ─────────────────────────────────────────
+async function buildAndSendDocx(res, children, filename) {
+  const doc = new Document({
+    styles: {
+      default: {
+        document: { run: { font: 'Calibri', size: 24, color: '1A1A2E' } }
+      }
+    },
+    sections: [{ properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } }, children }]
+  });
+  const buffer = await Packer.toBuffer(doc);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(buffer);
 }
 
 // ── Page routes ───────────────────────────────────────────────
@@ -165,14 +210,12 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/signup.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'signup.html')));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
-
 app.get('/app.html', async (req, res) => {
   const user = await getCurrentUser(req);
   if (!user) return res.redirect('/login.html');
   if (!user.email_confirmed_at) return res.redirect('/login.html?unconfirmed=1');
   res.sendFile(path.join(__dirname, 'public', 'app.html'));
 });
-
 app.get('/admin.html', async (req, res) => {
   const user = await getCurrentUser(req);
   if (!user) return res.redirect('/login.html');
@@ -192,7 +235,6 @@ app.post('/signup', async (req, res) => {
     res.json({ success: true, message: 'Account created. Check your email to confirm.' });
   } catch (err) { res.status(500).json({ success: false, message: 'Signup failed: ' + err.message }); }
 });
-
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password required' });
@@ -205,13 +247,11 @@ app.post('/login', async (req, res) => {
     res.json({ success: true, email: data.user.email });
   } catch (err) { res.status(500).json({ success: false, message: 'Login failed: ' + err.message }); }
 });
-
 app.post('/logout', (req, res) => {
   res.clearCookie('sb_access_token', { path: '/' });
   res.clearCookie('sb_refresh_token', { path: '/' });
   res.json({ success: true });
 });
-
 app.get('/me', async (req, res) => {
   const user = await getCurrentUser(req);
   if (!user) return res.json({ success: false, user: null });
@@ -219,91 +259,45 @@ app.get('/me', async (req, res) => {
   res.json({ success: true, user: { id: user.id, email: user.email, email_confirmed: !!user.email_confirmed_at }, access });
 });
 
-// ── ANALYZE URL ───────────────────────────────────────────────
+// ── ANALYZE ───────────────────────────────────────────────────
 app.post('/api/analyze', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
   const { url } = req.body;
   if (!url) return res.status(400).json({ success: false, message: 'URL required' });
-
   try {
     let pageText = '';
     try {
       const r = await fetch(url, { timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
       const html = await r.text();
-      pageText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
-                     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
-                     .replace(/<[^>]+>/g, ' ')
-                     .replace(/\s+/g, ' ')
-                     .slice(0, 8000);
-    } catch { pageText = 'Could not fetch page automatically. Analyze based on URL context.'; }
+      pageText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 8000);
+    } catch { pageText = 'Could not fetch page. Analyze based on URL context.'; }
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [{
-        role: 'user',
-        content: `You are an expert affiliate marketing strategist. Analyze this sales page deeply and return ONLY a valid JSON object.
-
-Analyze the offer and provide a thorough breakdown including:
-- What the product actually is and does
-- The core mechanism or unique selling proposition
-- Exact target audience and their psychology
-- The biggest frustrations this audience has experienced before finding this offer
-- The strongest emotional hook
-- Value gaps (what the offer does NOT cover that buyers will still need)
-
-Return ONLY this JSON with no text before or after:
+      model: 'claude-sonnet-4-20250514', max_tokens: 2000,
+      messages: [{ role: 'user', content: `Analyze this affiliate sales page deeply. Return ONLY valid JSON, no text before or after:
 {
-  "product_name": "exact product name",
-  "price": "front-end price",
-  "commission": "commission rate or amount",
+  "product_name": "exact name",
+  "price": "price shown",
+  "commission": "commission rate",
   "niche": "primary niche",
-  "target_audience": "detailed description of who this is for",
-  "main_pain_point": "the single biggest frustration this audience has",
+  "target_audience": "detailed who this is for",
+  "main_pain_point": "biggest frustration",
   "secondary_pain_points": ["pain 2", "pain 3", "pain 4"],
-  "main_benefit": "the single strongest promise or result",
-  "unique_mechanism": "what makes this offer different from others",
-  "audience_psychology": "2-3 sentences on the emotional state of this audience — what they have tried, why they are skeptical, what they really want",
-  "summary": "3-4 sentence summary covering what this is, who it helps, why they would buy it, and what makes it worth promoting",
-  "offer_score": {
-    "overall": 8,
-    "commission_rating": 9,
-    "niche_demand": 8,
-    "conversion_potential": 7,
-    "tier1_suitability": 8,
-    "notes": "2-3 sentence explanation of scores and what would make this offer stronger"
-  },
-  "value_gaps": ["specific gap 1 the offer does not address", "specific gap 2", "specific gap 3", "specific gap 4"],
+  "main_benefit": "strongest promise",
+  "unique_mechanism": "what makes this different",
+  "audience_psychology": "2-3 sentences on emotional state, past failures, what they really want",
+  "summary": "3-4 sentence summary",
+  "offer_score": { "overall": 8, "commission_rating": 7, "niche_demand": 8, "conversion_potential": 7, "tier1_suitability": 8, "notes": "2-3 sentence explanation" },
+  "value_gaps": ["gap 1", "gap 2", "gap 3", "gap 4"],
   "recommended_angle": "Consultative or Pain & Agitation or Pure Value & Bonus",
-  "angle_reason": "2-3 sentences explaining exactly why this angle fits this specific audience and offer"
+  "angle_reason": "2-3 sentences why this angle fits"
 }
-
-Page content: ${pageText}`
-      }]
+Page: ${pageText}` }]
     });
-
     let parsed;
-    try {
-      const text = message.content[0].text;
-      parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
-    } catch {
-      parsed = {
-        product_name: 'Affiliate product', price: 'See page', commission: 'See page',
-        niche: 'Make Money Online', target_audience: 'Beginner affiliate marketers',
-        main_pain_point: 'Not making money online despite trying multiple systems',
-        secondary_pain_points: ['Tech overwhelm', 'Wasted money on courses', 'No clear starting point'],
-        main_benefit: 'Start earning commissions with a simple proven system',
-        unique_mechanism: 'Done-for-you system with built-in traffic',
-        audience_psychology: 'This audience has tried multiple MMO systems and failed. They are skeptical of hype but still hopeful. They want something simple that actually works.',
-        summary: 'An affiliate marketing product designed to help beginners earn commissions online.',
-        offer_score: { overall: 7, commission_rating: 7, niche_demand: 8, conversion_potential: 7, tier1_suitability: 7, notes: 'Solid MMO offer with good demand. Commission details would improve assessment.' },
-        value_gaps: ['No traffic strategy provided', 'No email follow-up templates', 'No implementation checklist', 'No content creation guidance'],
-        recommended_angle: 'Pain & Agitation',
-        angle_reason: 'MMO audiences respond strongly to pain-based hooks that acknowledge their past failures before presenting a simpler solution.'
-      };
-    }
-
+    try { parsed = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
+    catch { parsed = { product_name:'Affiliate product', price:'See page', commission:'See page', niche:'Make Money Online', target_audience:'Beginner affiliate marketers', main_pain_point:'Not making money online despite trying', secondary_pain_points:['Tech overwhelm','Wasted money','No clear path'], main_benefit:'Start earning commissions', unique_mechanism:'Done-for-you system', audience_psychology:'Skeptical beginners who have tried and failed before.', summary:'An affiliate marketing product for beginners.', offer_score:{overall:7,commission_rating:7,niche_demand:8,conversion_potential:7,tier1_suitability:7,notes:'Solid MMO offer.'}, value_gaps:['No traffic strategy','No email templates','No checklist','No content prompts'], recommended_angle:'Pain & Agitation', angle_reason:'Pain hooks work well for burned-out MMO beginners.' }; }
     res.json({ success: true, analysis: parsed });
   } catch (err) { res.status(500).json({ success: false, message: 'Analysis failed: ' + err.message }); }
 });
@@ -314,67 +308,51 @@ app.post('/api/generate/lead-magnet', async (req, res) => {
   if (!user) return;
   const { analysis, angle, project_id } = req.body;
   if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Analysis and angle required' });
-
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 6000,
-      system: SOLO_ADS_KB,
-      messages: [{
-        role: 'user',
-        content: `Create a high-value free lead magnet for cold solo ad traffic. This is the free incentive given to people who opt in BEFORE they see the sales page. It must deliver real standalone value while naturally leading them toward the paid offer.
+      model: 'claude-sonnet-4-20250514', max_tokens: 6000, system: SOLO_ADS_KB,
+      messages: [{ role: 'user', content: `Create a high-value free lead magnet for cold solo ad traffic in the ${analysis.niche} niche.
 
-Offer details:
-- Product: ${analysis.product_name}
-- Niche: ${analysis.niche}
-- Target audience: ${analysis.target_audience}
-- Main pain point: ${analysis.main_pain_point}
-- Main benefit: ${analysis.main_benefit}
-- Audience psychology: ${analysis.audience_psychology || ''}
-- Angle: ${angle}
+Offer: ${analysis.product_name}
+Target audience: ${analysis.target_audience}
+Main pain point: ${analysis.main_pain_point}
+Main benefit: ${analysis.main_benefit}
+Audience psychology: ${analysis.audience_psychology}
+Angle: ${angle}
 
-LEAD MAGNET RULES:
-- Must be 1,500-2,000 words of genuinely useful content
-- Give real actionable value — steps, examples, specific guidance
-- Should make the reader think "this is great, I want more of this"
-- Title must be benefit-driven and curiosity-inducing
-- Use headers, numbered steps, bullet points for easy reading
-- Do NOT pitch the paid offer inside the lead magnet — let it stand alone
-- Write short paragraphs. Use white space. Make it feel clean and easy to read.
+LEAD MAGNET REQUIREMENTS:
+- 1,500-2,000 words of genuinely useful, actionable content
+- Professional document format with clear sections
+- Use headers (## for sections, ### for subsections), numbered steps, bullet points
+- Give real value — specific steps, real examples, things they can do TODAY
+- Do NOT pitch the paid offer — this stands alone as a valuable free resource
+- Title must be compelling, benefit-driven, and specific (include numbers where natural)
+- Write short paragraphs — 2-3 sentences max per paragraph
+- Every section must give them something concrete to implement
 
-Return ONLY valid JSON with no text before or after:
+Return ONLY valid JSON:
 {
-  "title": "Lead magnet title",
-  "subtitle": "Supporting subtitle",
-  "cover_prompt": "DALL-E 3 prompt: A professional 3D ebook cover mockup with dark navy background, bold gold title text, clean modern design, digital product mockup style, no people, high quality render",
-  "full_content": "The complete lead magnet content here — 1500-2000 words with proper headers, steps, examples. Write the full thing. No placeholders."
-}`
-      }]
+  "title": "Compelling benefit-driven title with specifics",
+  "subtitle": "Supporting subtitle that expands the promise",
+  "cover_prompt": "Hyper-detailed DALL-E 3 prompt for a premium 3D ebook cover: Show a photorealistic 3D hardcover book standing upright on a reflective dark surface. The book has a deep navy blue cover with gold foil title text reading exactly the book title. The spine shows the author name. Professional studio lighting with subtle shadows. The cover design includes a relevant icon or graphic element. Ultra high quality render, 8K, professional product photography style. No people, no faces.",
+  "full_content": "Complete 1500-2000 word lead magnet with proper markdown formatting — real headers, numbered steps, bullet points, examples. Write every word. No placeholders."
+}` }]
     });
 
-    let leadMagnet;
-    try {
-      const text = message.content[0].text;
-      leadMagnet = JSON.parse(text.replace(/```json|```/g, '').trim());
-    } catch {
-      return res.status(500).json({ success: false, message: 'Failed to parse lead magnet content' });
-    }
+    let lm;
+    try { lm = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
+    catch { return res.status(500).json({ success: false, message: 'Failed to parse lead magnet' }); }
 
-    // Generate cover image
-    leadMagnet.cover_image = await generateImage(leadMagnet.cover_prompt);
+    lm.cover_image = await generateImage(lm.cover_prompt);
 
     if (project_id) {
-      await adminClient.from('promolab_project_content').upsert({
-        project_id, user_id: user.id, content_type: 'lead_magnet',
-        content: JSON.stringify(leadMagnet), updated_at: new Date().toISOString()
-      }, { onConflict: 'project_id,content_type' });
+      await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'lead_magnet', content: JSON.stringify(lm), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
-
-    res.json({ success: true, lead_magnet: leadMagnet });
-  } catch (err) { res.status(500).json({ success: false, message: 'Lead magnet generation failed: ' + err.message }); }
+    res.json({ success: true, lead_magnet: lm });
+  } catch (err) { res.status(500).json({ success: false, message: 'Lead magnet failed: ' + err.message }); }
 });
 
 // ── GENERATE BONUS STACK ──────────────────────────────────────
@@ -383,143 +361,105 @@ app.post('/api/generate/bonuses', async (req, res) => {
   if (!user) return;
   const { analysis, angle, project_id } = req.body;
   if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Analysis and angle required' });
-
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8000,
-      system: SOLO_ADS_KB,
-      messages: [{
-        role: 'user',
-        content: `Create a buyer-only bonus stack for this affiliate offer. The chosen angle is: ${angle}.
+      model: 'claude-sonnet-4-20250514', max_tokens: 9000, system: SOLO_ADS_KB,
+      messages: [{ role: 'user', content: `Create a 3-part buyer-only bonus stack for this affiliate offer. Angle: ${angle}.
 
-Offer details:
-- Product: ${analysis.product_name}
-- Niche: ${analysis.niche}
-- Main benefit: ${analysis.main_benefit}
-- Main pain point: ${analysis.main_pain_point}
-- Value gaps to fill: ${(analysis.value_gaps || []).join(', ')}
-- Target audience: ${analysis.target_audience}
-- Audience psychology: ${analysis.audience_psychology || ''}
+Product: ${analysis.product_name}
+Niche: ${analysis.niche}
+Main benefit: ${analysis.main_benefit}
+Main pain point: ${analysis.main_pain_point}
+Value gaps: ${(analysis.value_gaps||[]).join(', ')}
+Audience: ${analysis.target_audience}
+Psychology: ${analysis.audience_psychology}
 
-BONUS CONTENT RULES — THIS IS CRITICAL:
-- Each bonus must be 400-600 words of REAL content. Not summaries. Not outlines. Actual usable content.
-- Every bonus solves ONE specific gap the main offer does not cover
-- Use headers, numbered steps, bullet points, real examples
-- Write like a helpful expert, not a marketer
-- Short paragraphs. White space. Scannable.
-- The content must be genuinely valuable on its own — not dependent on the main offer
+BONUS CONTENT RULES — CRITICAL:
+- Each bonus 400-600 words of REAL, usable content. Not outlines. Actual deliverable content.
+- Each bonus solves ONE specific gap the main offer does not cover
+- Bonus 1 (1-Page Checklist): Step-by-step numbered action checklist format. 15-25 specific action items organized by phase or section. Each item is a concrete action, not vague advice.
+- Bonus 2 (2-Page Guide): Educational guide format. Teach a specific strategy or skill. Use headers, sub-sections, examples, and a clear how-to structure.
+- Bonus 3 (AI Prompt Pack): 8-10 complete AI prompts. Each prompt has a title, the full prompt text (copy-paste ready), and 1-2 sentence instructions on how to use it.
+- Cover prompts must describe DIFFERENT visual styles for each bonus so they look like a set but are distinct
 
-Generate exactly 3 bonuses:
-- Bonus 1: A practical 1-page checklist (step-by-step action format)
-- Bonus 2: A 2-page guide (educational, teaches a specific skill or strategy)
-- Bonus 3: An AI prompt pack (8-10 copy-paste prompts with instructions)
-
-Return ONLY a valid JSON array with no text before or after:
+Return ONLY valid JSON array — no text before or after:
 [
   {
     "number": 1,
-    "title": "Bonus title",
+    "title": "Specific benefit-driven title",
     "type": "1-Page Checklist",
-    "description": "One clear sentence: what this bonus does and exactly which gap it fills",
-    "full_content": "400-600 words of complete, real, usable checklist content with headers and steps. Write the whole thing.",
-    "cover_prompt": "DALL-E 3 prompt: A professional 3D ebook cover mockup, dark navy and gold color scheme, bold white title text, clean checklist icon, modern digital product style, high quality render, no people"
+    "tagline": "One sentence that sells the bonus",
+    "description": "Two sentences: what it is and what specific problem it solves",
+    "full_content": "400-600 words of real checklist content. Numbered action steps organized by phase. Every step is specific and actionable.",
+    "cover_prompt": "Hyper-detailed DALL-E 3 prompt: Photorealistic 3D checklist pad or clipboard product mockup. Dark navy blue cover, gold checklist checkmark icon, bold white title text. Professional studio product photography, soft dramatic lighting, reflective surface. Premium quality render 8K. No people."
   },
   {
     "number": 2,
-    "title": "Bonus title",
+    "title": "Specific benefit-driven title",
     "type": "2-Page Guide",
-    "description": "One clear sentence description",
-    "full_content": "400-600 words of complete guide content with headers, explanation, examples, and actionable steps. Write the whole thing.",
-    "cover_prompt": "DALL-E 3 prompt: A professional 3D ebook cover mockup, deep blue and white color scheme, bold title text, open book or guide icon, clean modern design, high quality render, no people"
+    "tagline": "One sentence that sells the bonus",
+    "description": "Two sentences description",
+    "full_content": "400-600 words of real guide content with headers, explanation, examples, steps.",
+    "cover_prompt": "Hyper-detailed DALL-E 3 prompt: Photorealistic 3D softcover guide or report mockup standing at slight angle. Deep royal blue and white design, clean modern typography, relevant icon for the topic. Professional product photography lighting, dark background with light rays. Ultra high quality 8K render. No people."
   },
   {
     "number": 3,
-    "title": "Bonus title",
+    "title": "Specific benefit-driven title",
     "type": "AI Prompt Pack",
-    "description": "One clear sentence description",
-    "full_content": "8-10 complete AI prompts with titles, full prompt text, and brief instructions for each. Write all prompts in full. 400-600 words total.",
-    "cover_prompt": "DALL-E 3 prompt: A professional 3D ebook cover mockup, dark purple and gold color scheme, bold title text, AI or lightning bolt icon, futuristic clean design, high quality render, no people"
+    "tagline": "One sentence that sells the bonus",
+    "description": "Two sentences description",
+    "full_content": "8-10 complete prompts. Each has: PROMPT TITLE in caps, full copy-paste prompt text, brief usage note.",
+    "cover_prompt": "Hyper-detailed DALL-E 3 prompt: Photorealistic 3D digital tablet or sleek ebook mockup. Dark purple and electric gold design, futuristic AI circuit pattern, bold modern font. Professional product photography, dramatic studio lighting, dark reflective surface. Ultra high quality 8K. No people."
   }
-]`
-      }]
+]` }]
     });
 
     let bonuses;
-    const rawText = message.content[0].text;
-    try {
-      bonuses = JSON.parse(rawText.replace(/```json|```/g, '').trim());
-    } catch {
-      try {
-        const match = rawText.match(/\[[\s\S]*\]/);
-        if (match) bonuses = JSON.parse(match[0]);
-        else throw new Error('No JSON array found');
-      } catch {
-        bonuses = [
-          { number:1, title:`${analysis.product_name} Quick-Start Checklist`, type:'1-Page Checklist',
-            description:`Step-by-step action plan for getting fast results from ${analysis.product_name}`,
-            full_content:`Step 1: Complete your account setup\nStep 2: Go through the core training in order\nStep 3: Apply each lesson before moving on\nStep 4: Pick one traffic method and commit to it for 7 days\nStep 5: Track your clicks and results daily\nStep 6: Scale what is working`,
-            cover_prompt:'Professional 3D ebook cover mockup, dark navy background, gold checklist icon, bold white title text, clean modern digital product style, no people' },
-          { number:2, title:`${analysis.niche} Fast Track Guide`, type:'2-Page Guide',
-            description:`Practical guide to getting your first result in ${analysis.niche}`,
-            full_content:`This guide covers the fastest path to your first result.\n\nFocus on one strategy at a time. Consistent daily action beats shortcuts.\n\nSection 1: Mindset\nMost beginners fail not because of lack of tools but lack of consistency. Commit to 30 days.\n\nSection 2: Your First Steps\nDo not try to master everything. Pick one method, get good at it, then expand.\n\nSection 3: Daily Routine\nSpend 30-60 minutes per day on your primary activity. Track results weekly.`,
-            cover_prompt:'Professional 3D ebook cover mockup, deep blue and white, bold title text, guide or map icon, clean modern design, no people' },
-          { number:3, title:'AI Prompt Pack — Faster Results', type:'AI Prompt Pack',
-            description:'10 copy-paste AI prompts to create content and promotional material faster',
-            full_content:`Prompt 1: Write 5 social media posts promoting [product] to [audience]\nPrompt 2: Write a follow-up email to someone who opted in but did not buy\nPrompt 3: Write 5 subject line options for a promotional email about [product]\nPrompt 4: Write a bridge page script using the [angle] approach\nPrompt 5: Write a Facebook post using a personal story to promote [product]\nPrompt 6: Write 10 curiosity-based hooks for [niche] content\nPrompt 7: Write objection-handling replies for common [niche] doubts\nPrompt 8: Write a 7-day content plan for promoting [product]\nPrompt 9: Write a short video script for TikTok or Reels about [topic]\nPrompt 10: Write a profile bio that attracts [target audience]`,
-            cover_prompt:'Professional 3D ebook cover mockup, dark purple and gold, bold title text, AI lightning bolt icon, futuristic clean design, no people' }
-        ];
-      }
+    const raw = message.content[0].text;
+    try { bonuses = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+    catch {
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (match) { try { bonuses = JSON.parse(match[0]); } catch { bonuses = null; } }
     }
+    if (!bonuses) return res.status(500).json({ success: false, message: 'Failed to parse bonuses' });
 
-    // Generate cover images for each bonus
+    // Generate individual bonus cover images
     for (let i = 0; i < bonuses.length; i++) {
       bonuses[i].cover_image = await generateImage(bonuses[i].cover_prompt);
     }
 
-    // Generate bonus stack summary
-    const summaryMessage = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: SOLO_ADS_KB,
-      messages: [{
-        role: 'user',
-        content: `Write a compelling bonus stack summary for use on a bridge page. This is a 250-350 word pitch that presents all 3 bonuses as a complete package.
+    // Generate bonus stack summary copy
+    const summaryMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514', max_tokens: 800, system: SOLO_ADS_KB,
+      messages: [{ role: 'user', content: `Write a compelling 250-300 word bonus stack pitch for a bridge page. This sells all 3 bonuses as a package.
 
 Product: ${analysis.product_name}
 Angle: ${angle}
 Bonuses:
-${bonuses.map(b => `- ${b.title}: ${b.description}`).join('\n')}
+${bonuses.map(b => `${b.number}. ${b.title} — ${b.description}`).join('\n')}
 
-The summary should:
-- Open with the core problem the buyer still faces after getting the main offer
-- Position the bonus stack as the implementation shortcut that fills those gaps
-- Describe each bonus in 2-3 sentences with specific benefit language
-- Close with a powerful "what this means for you" statement
-- End with the three things the bonuses give them (what to do first, where to get traffic, what to say — or equivalents for this niche)
+Structure:
+- Open with the exact problem buyers still face after getting the main offer
+- One sentence per bonus explaining the specific benefit
+- Close with a 3-line summary of what they now have (what to do first / where to get traffic / what to say — or equivalent for this niche)
+- Final line creates urgency
 
-Return ONLY the plain text of the summary. No JSON. No headers. Just the copy.`
-      }]
+Return only the plain copy text. No JSON.` }]
     });
+    const stackSummary = summaryMsg.content[0].text.trim();
 
-    const stackSummary = summaryMessage.content[0].text.trim();
+    // Generate bonus stack image — all 3 together with descriptions
+    const stackPrompt = `Hyper-detailed DALL-E 3 prompt: Professional marketing bonus stack display image. Three distinct 3D ebook/product covers arranged in a fan or cascade layout on a dark navy background. Each cover is clearly different — one checklist style, one guide style, one digital/AI style. Gold "EXCLUSIVE BONUS PACKAGE" banner at top. Below each cover, 2 lines of white text showing the bonus title and a short benefit description. Clean premium marketing design, professional typography, subtle gold accents. High contrast, visually striking. 8K quality render. No people.`;
+    const stackImage = await generateImage(stackPrompt);
 
-    // Generate stack image
-    const stackImagePrompt = `A professional marketing bonus stack display, showing 3 digital ebook covers arranged together, dark navy background, gold and white text, "EXCLUSIVE BUYER BONUSES" label, clean premium marketing design, high quality render, no people`;
-    const stackImage = await generateImage(stackImagePrompt);
-
+    const result = { bonuses, stack_summary: stackSummary, stack_image: stackImage };
     if (project_id) {
-      await adminClient.from('promolab_project_content').upsert({
-        project_id, user_id: user.id, content_type: 'bonus_stack',
-        content: JSON.stringify({ bonuses, stack_summary: stackSummary, stack_image: stackImage }),
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'project_id,content_type' });
+      await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'bonus_stack', content: JSON.stringify(result), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
-
-    res.json({ success: true, bonuses, stack_summary: stackSummary, stack_image: stackImage });
+    res.json({ success: true, ...result });
   } catch (err) { res.status(500).json({ success: false, message: 'Bonus generation failed: ' + err.message }); }
 });
 
@@ -529,238 +469,263 @@ app.post('/api/generate/optin', async (req, res) => {
   if (!user) return;
   const { analysis, angle, lead_magnet, project_id } = req.body;
   if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Analysis and angle required' });
-
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
 
-  const leadMagnetContext = lead_magnet
-    ? `Lead magnet: "${lead_magnet.title}" — ${lead_magnet.subtitle || 'Free guide for new subscribers'}`
-    : 'No lead magnet — use the main offer promise as the opt-in incentive.';
+  const lmContext = lead_magnet ? `Lead magnet: "${lead_magnet.title}" — ${lead_magnet.subtitle || ''}` : 'No lead magnet — use main offer promise as incentive.';
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      system: SOLO_ADS_KB,
-      messages: [{
-        role: 'user',
-        content: `Write a high-converting opt-in squeeze page for cold solo ad traffic using the ${angle} angle.
+      model: 'claude-sonnet-4-20250514', max_tokens: 1500, system: SOLO_ADS_KB,
+      messages: [{ role: 'user', content: `Write a high-converting opt-in squeeze page for cold solo ad traffic. Angle: ${angle}.
 
 Offer: ${analysis.product_name}
 Niche: ${analysis.niche}
 Main pain point: ${analysis.main_pain_point}
-Secondary pain points: ${(analysis.secondary_pain_points || []).join(', ')}
+Secondary pains: ${(analysis.secondary_pain_points||[]).join(', ')}
 Main benefit: ${analysis.main_benefit}
-Target audience: ${analysis.target_audience}
-Audience psychology: ${analysis.audience_psychology || ''}
-${leadMagnetContext}
+Audience: ${analysis.target_audience}
+Psychology: ${analysis.audience_psychology}
+${lmContext}
 
-CRITICAL RULES:
-- No bonuses mentioned anywhere — buyers only
-- Ultra-concise above the fold — everything must fit without scrolling
-- Two A/B headline variations testing different hooks
-- Bullet points must be specific benefits, not vague claims
-- CTA button text must create urgency or curiosity — not just "Submit"
-- Microcopy under button removes objections
+Rules: No bonuses mentioned. Everything above the fold. Two A/B headlines.
 
 Return ONLY valid JSON:
 {
-  "headline_a": "Version A headline — curiosity/benefit driven, speaks directly to the pain",
-  "headline_b": "Version B headline — different hook, tests a different emotional trigger",
-  "subheadline": "One sentence that expands the promise and makes it feel real and achievable",
+  "headline_a": "Version A — curiosity/pain driven, punchy",
+  "headline_b": "Version B — different emotional trigger, benefit focused",
+  "subheadline": "One sentence expanding the promise — specific and believable",
   "bullets": ["Specific benefit 1", "Specific benefit 2", "Specific benefit 3", "Specific benefit 4", "Specific benefit 5"],
-  "cta_button": "Action-oriented CTA button text",
-  "microcopy": "Short reassurance line under the button — removes objections",
+  "cta_button": "Action-oriented CTA — urgency or curiosity",
+  "microcopy": "Short objection-removing line under button",
   "form_fields": ["First Name", "Email Address"],
-  "above_fold_note": "Brief note on above-fold layout and which elements are most critical",
-  "split_test_tip": "Which headline to run first and exactly why based on this audience and angle"
-}`
-      }]
+  "above_fold_note": "Layout guidance",
+  "split_test_tip": "Which to run first and why"
+}` }]
     });
 
     let content;
     try { content = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch { return res.status(500).json({ success: false, message: 'Failed to parse opt-in content' }); }
+    catch { return res.status(500).json({ success: false, message: 'Failed to parse opt-in' }); }
+
+    // Build HTML preview
+    const coverImg = lead_magnet && lead_magnet.cover_image
+      ? `<img src="${lead_magnet.cover_image}" style="width:200px;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.3);">`
+      : '';
+
+    content.html_preview = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${content.headline_a}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Arial',sans-serif;background:linear-gradient(135deg,#0F0F23 0%,#1A1A3E 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.page{max-width:600px;width:100%;text-align:center}
+.eyebrow{display:inline-block;background:rgba(255,215,0,0.15);border:1px solid rgba(255,215,0,0.4);color:#FFD700;font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:6px 16px;border-radius:20px;margin-bottom:24px}
+h1{font-size:clamp(26px,5vw,44px);font-weight:900;color:#FFFFFF;line-height:1.1;letter-spacing:-0.02em;margin-bottom:16px}
+.sub{font-size:18px;color:#BBBBDD;line-height:1.5;margin-bottom:28px}
+.cover-wrap{margin-bottom:28px}
+.bullets{text-align:left;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px 24px;margin-bottom:28px}
+.bullet-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;color:#DDDDEE;font-size:15px;line-height:1.4}
+.bullet-item:last-child{margin-bottom:0}
+.bullet-check{color:#4ADE80;font-size:16px;flex-shrink:0;margin-top:1px}
+.form-wrap{margin-bottom:16px}
+input[type=text],input[type=email]{width:100%;padding:14px 18px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#fff;font-size:16px;margin-bottom:10px;outline:none}
+input::placeholder{color:#8888AA}
+.cta-btn{width:100%;padding:18px;background:linear-gradient(135deg,#FF6B35,#FF4500);color:#fff;border:none;border-radius:10px;font-size:18px;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:0.04em;box-shadow:0 4px 20px rgba(255,107,53,0.4)}
+.micro{font-size:12px;color:#8888AA;margin-top:10px}
+.ab-toggle{background:rgba(79,70,184,0.3);border:1px solid rgba(79,70,184,0.5);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#AAAACC;display:flex;align-items:center;gap:8px}
+</style></head>
+<body><div class="page">
+<div class="ab-toggle">🧪 <strong>Version A</strong> — click to preview Version B: <a href="#" onclick="toggleH();return false;" style="color:#7B7EEE;text-decoration:none;font-weight:700">Switch headline</a></div>
+<div class="eyebrow">Free Instant Access</div>
+<h1 id="headline">${escHtml(content.headline_a)}</h1>
+<p class="sub">${escHtml(content.subheadline)}</p>
+${coverImg ? `<div class="cover-wrap">${coverImg}</div>` : ''}
+<div class="bullets">${(content.bullets||[]).map(b=>`<div class="bullet-item"><span class="bullet-check">✓</span><span>${escHtml(b)}</span></div>`).join('')}</div>
+<div class="form-wrap">
+<input type="text" placeholder="Your First Name">
+<input type="email" placeholder="Your Email Address">
+<button class="cta-btn">${escHtml(content.cta_button)}</button>
+<p class="micro">${escHtml(content.microcopy)}</p>
+</div>
+</div>
+<script>var h=['${content.headline_a.replace(/'/g,"\\'")}','${content.headline_b.replace(/'/g,"\\'")}'];var i=0;function toggleH(){i=i===0?1:0;document.getElementById('headline').textContent=h[i];}</script>
+</body></html>`;
 
     if (project_id) {
-      await adminClient.from('promolab_project_content').upsert({
-        project_id, user_id: user.id, content_type: 'optin_page',
-        content: JSON.stringify(content), updated_at: new Date().toISOString()
-      }, { onConflict: 'project_id,content_type' });
+      await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'optin_page', content: JSON.stringify(content), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
-
     res.json({ success: true, content });
-  } catch (err) { res.status(500).json({ success: false, message: 'Opt-in generation failed: ' + err.message }); }
+  } catch (err) { res.status(500).json({ success: false, message: 'Opt-in failed: ' + err.message }); }
 });
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── GENERATE BRIDGE PAGE ──────────────────────────────────────
 app.post('/api/generate/bridge', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
   const { analysis, angle, format, bonuses, stack_summary, lead_magnet, project_id } = req.body;
-  if (!analysis || !angle || !format) return res.status(400).json({ success: false, message: 'Analysis, angle, and format required' });
-
+  if (!analysis || !angle || !format) return res.status(400).json({ success: false, message: 'Missing required fields' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
 
   const bonusContext = bonuses && bonuses.length > 0
-    ? `Buyer-only bonuses:\n${bonuses.map(b => `- ${b.title}: ${b.description}`).join('\n')}\n\nBonus stack summary: ${stack_summary || 'Not provided'}`
-    : 'No bonuses defined — write without bonus references.';
-
-  const leadMagnetContext = lead_magnet
-    ? `The visitor just opted in to receive: "${lead_magnet.title}". Reference this in the bridge to maintain continuity.`
-    : 'No lead magnet — visitor came straight from ad.';
-
+    ? `Buyer bonuses:\n${bonuses.map(b=>`- ${b.title}: ${b.description}`).join('\n')}\nStack summary: ${stack_summary||''}`
+    : 'No bonuses defined.';
+  const lmContext = lead_magnet ? `Visitor just opted in for: "${lead_magnet.title}". Reference this.` : '';
   const formatInstructions = {
-    text: 'Write text-only copy with: headline, relatable story/problem (2-3 paragraphs), benefit bullets, bonus stack pitch with each bonus described, strong CTA. Minimum 600 words.',
-    vsl: 'Write a complete VSL video script (reads as 3-4 minutes when spoken) PLUS full supporting text copy below the video. Script must have: hook, relatable problem, solution reveal, bonus stack pitch with each bonus named, urgency close, CTA. Total minimum 800 words.',
-    short: 'Write a punchy 4-6 sentence intro blurb that creates massive curiosity plus a strong CTA. Keep it extremely tight but impactful.'
+    text: 'Text-only: headline, relatable story/problem (2-3 paragraphs), 4-5 benefit bullets, bonus stack pitch with each bonus named and described, strong CTA. 600+ words.',
+    vsl: 'VSL script (3-4 min spoken) + full supporting text copy. Script: hook, relatable problem, solution reveal, each bonus named, urgency close, CTA. 800+ words total.',
+    short: 'Punchy 5-7 sentence intro creating massive curiosity + strong CTA. Extremely tight but emotionally powerful.'
   };
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      system: SOLO_ADS_KB,
-      messages: [{
-        role: 'user',
-        content: `Write a high-converting bridge page for this affiliate offer using the ${angle} angle.
+      model: 'claude-sonnet-4-20250514', max_tokens: 3500, system: SOLO_ADS_KB,
+      messages: [{ role: 'user', content: `Write a high-converting bridge page. Angle: ${angle}. Format: ${format}.
 
-Offer: ${analysis.product_name}
-Price: ${analysis.price || 'low-ticket'}
+Offer: ${analysis.product_name} (${analysis.price||'low ticket'})
 Main benefit: ${analysis.main_benefit}
-Main pain point: ${analysis.main_pain_point}
-Unique mechanism: ${analysis.unique_mechanism || ''}
-Audience psychology: ${analysis.audience_psychology || ''}
-${leadMagnetContext}
+Pain point: ${analysis.main_pain_point}
+Mechanism: ${analysis.unique_mechanism||''}
+Psychology: ${analysis.audience_psychology}
+${lmContext}
 ${bonusContext}
 
-Format: ${formatInstructions[format] || formatInstructions.text}
+Format instructions: ${formatInstructions[format]||formatInstructions.text}
 
-CRITICAL RULES:
-- Bridge the gap from opt-in to sales page — this is your personal recommendation
-- Acknowledge the reader's skepticism and past failures — make them feel understood
-- Present the offer as the logical solution they have been looking for
-- Pitch the bonus stack as the reason to buy specifically through your link
-- Critical info and first CTA must appear above the fold
-- Write in first-person conversational tone — like a recommendation from a trusted friend
+Write in first person. Acknowledge skepticism. Present offer as logical solution. Pitch bonuses as reward for buying through your link specifically.
 
 Return ONLY valid JSON:
 {
-  "headline": "Bridge page headline — strong, benefit-driven, creates urgency",
+  "headline": "Strong headline",
   "subheadline": "Supporting subheadline",
-  "content": "Full bridge page copy as specified in format — write every word, no placeholders",
+  "content": "Full bridge copy — every word written, no placeholders",
   "cta_text": "CTA button text",
-  "bonus_claim_note": "Short note under CTA explaining how to claim bonuses after purchase",
-  "above_fold_note": "What must appear above fold and why"
-}`
-      }]
+  "bonus_claim_note": "How to claim bonuses after purchase",
+  "above_fold_note": "What appears above fold"
+}` }]
     });
 
     let content;
     try { content = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
-    catch { return res.status(500).json({ success: false, message: 'Failed to parse bridge content' }); }
+    catch { return res.status(500).json({ success: false, message: 'Failed to parse bridge' }); }
+
+    // Build HTML preview
+    const stackImgTag = (bonuses && bonuses.length > 0 && bonuses[0].cover_image)
+      ? `<div class="bonus-covers">${bonuses.map(b=>b.cover_image?`<img src="${b.cover_image}" style="width:100px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.4);">`:'').join('')}</div>`
+      : '';
+
+    content.html_preview = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escHtml(content.headline)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#F0F0F8;color:#1A1A2E;padding:0}
+.hero{background:linear-gradient(135deg,#0F0F23,#1A1A3E);padding:60px 20px;text-align:center}
+.hero h1{font-size:clamp(22px,4vw,38px);font-weight:900;color:#fff;line-height:1.15;max-width:720px;margin:0 auto 16px;letter-spacing:-0.02em}
+.hero .sub{font-size:18px;color:#BBBBDD;max-width:560px;margin:0 auto}
+.container{max-width:680px;margin:0 auto;padding:40px 20px}
+.body-copy{font-size:16px;line-height:1.8;color:#2A2A3E;white-space:pre-wrap;margin-bottom:32px}
+.bonus-section{background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-bottom:32px;text-align:center}
+.bonus-section h2{font-size:22px;font-weight:800;color:#1A1A2E;margin-bottom:20px}
+.bonus-covers{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.bonus-list{text-align:left}
+.bonus-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #F0F0F8}
+.bonus-item:last-child{border-bottom:none}
+.b-num{width:28px;height:28px;border-radius:50%;background:#4F46B8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.b-title{font-weight:700;font-size:14px;color:#1A1A2E}
+.b-desc{font-size:13px;color:#666;margin-top:2px}
+.cta-wrap{text-align:center;margin:32px 0}
+.cta-btn{display:inline-block;background:linear-gradient(135deg,#FF6B35,#FF4500);color:#fff;font-size:18px;font-weight:900;padding:18px 40px;border-radius:10px;text-decoration:none;box-shadow:0 4px 20px rgba(255,107,53,0.4);cursor:pointer;border:none;text-transform:uppercase;letter-spacing:0.04em}
+.claim-note{font-size:13px;color:#888;margin-top:12px;text-align:center}
+</style></head>
+<body>
+<div class="hero"><h1>${escHtml(content.headline)}</h1><p class="sub">${escHtml(content.subheadline||'')}</p></div>
+<div class="container">
+<div class="body-copy">${escHtml(content.content)}</div>
+${bonuses && bonuses.length > 0 ? `<div class="bonus-section">
+<h2>🎁 Your Exclusive Buyer Bonuses</h2>
+${stackImgTag}
+<div class="bonus-list">${bonuses.map(b=>`<div class="bonus-item"><div class="b-num">${b.number}</div><div><div class="b-title">${escHtml(b.title)}</div><div class="b-desc">${escHtml(b.description)}</div></div></div>`).join('')}</div>
+</div>` : ''}
+<div class="cta-wrap"><button class="cta-btn">${escHtml(content.cta_text)}</button><p class="claim-note">${escHtml(content.bonus_claim_note||'')}</p></div>
+</div></body></html>`;
 
     if (project_id) {
-      await adminClient.from('promolab_project_content').upsert({
-        project_id, user_id: user.id, content_type: 'bridge_page',
-        content: JSON.stringify(content), updated_at: new Date().toISOString()
-      }, { onConflict: 'project_id,content_type' });
+      await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'bridge_page', content: JSON.stringify(content), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
-
     res.json({ success: true, content });
-  } catch (err) { res.status(500).json({ success: false, message: 'Bridge generation failed: ' + err.message }); }
+  } catch (err) { res.status(500).json({ success: false, message: 'Bridge failed: ' + err.message }); }
 });
 
-// ── GENERATE EMAIL SEQUENCES ──────────────────────────────────
+// ── GENERATE EMAILS ───────────────────────────────────────────
 app.post('/api/generate/emails', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
   const { analysis, angle, sequence_type, bonuses, lead_magnet, project_id } = req.body;
-  if (!analysis || !angle || !sequence_type) return res.status(400).json({ success: false, message: 'Analysis, angle, and sequence type required' });
-
+  if (!analysis || !angle || !sequence_type) return res.status(400).json({ success: false, message: 'Missing required fields' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
 
-  const bonusContext = bonuses && bonuses.length > 0
-    ? `Buyer-only bonuses:\n${bonuses.map(b => `- ${b.title}: ${b.description}`).join('\n')}`
-    : 'No bonuses defined.';
+  const bonusContext = bonuses && bonuses.length > 0 ? `Buyer bonuses:\n${bonuses.map(b=>`- ${b.title}: ${b.description}`).join('\n')}` : 'No bonuses.';
+  const lmContext = lead_magnet ? `Lead magnet delivered: "${lead_magnet.title}"` : 'No lead magnet.';
 
-  const leadMagnetContext = lead_magnet
-    ? `Lead magnet delivered on opt-in: "${lead_magnet.title}"`
-    : 'No lead magnet.';
-
-  const sequenceInstructions = {
-    non_buyers: `Non-Buyers 4-Day Sequence (Goal: Convert to Sale):
-Day 1: Thank you for opting in. Deliver lead magnet if applicable. Check if they have questions. Softly introduce the offer with a link. Keep it warm and low-pressure.
-Day 2: Story/Solution email. Tell a relatable story about the struggle this audience faces. Transition to how the offer solves it. Include affiliate link.
-Day 3: Hard pitch. Name and describe each buyer-only bonus specifically. Make the bonus stack the main reason to buy today through your link. Clear CTA.
-Day 4: Final push. Create gentle scarcity or urgency. Position simple action over endless research. Final reminder of bonuses. Last chance energy.`,
-    buyers: `Buyers 4-Day Sequence (Goal: Onboard & Ascend):
-Day 1: Welcome and congrats. Tell them how to access all 3 bonuses. Tell them exactly what to do first. Keep it warm and celebratory.
-Day 2: Advanced tip email. Teach them one specific insight that makes the main offer work better. Real value, not a sales pitch.
-Day 3: Introduce a related solution or natural upsell. Frame it as the logical next step after they have implemented the main offer.
-Day 4: Demo/benefits of the related solution. Make it feel like the obvious continuation of their journey.`
+  const sequences = {
+    non_buyers: `5-Day Non-Buyers Sequence — Goal: Convert to Sale
+Day 1: Thank you + deliver lead magnet + soft introduction to offer. Warm, helpful tone. Light link.
+Day 2: Story email — share a relatable struggle this audience faces. Transition to how the offer solves it. Include link.
+Day 3: Value email — teach one useful thing related to the niche. Build trust. Soft mention of offer at end.
+Day 4: Hard pitch — name every bonus specifically. Make the stack the reason to buy TODAY through your link. Clear CTA.
+Day 5: Final push — urgency/scarcity. Simple action beats endless research. Last call for bonuses. Strong close.`,
+    buyers: `7-Day Buyers Sequence — Goal: Onboard, Build Trust, Ascend
+Day 1: Welcome + congrats + deliver all 3 bonuses with access instructions. Tell them exactly what to do first.
+Day 2: Quick win tip — teach one specific action that gets a fast result. Practical, no upsell.
+Day 3: Mindset/success patterns — what separates people who succeed with this from those who don't. Pure value.
+Day 4: Advanced strategy — one deeper tactic they can implement now. Positions you as expert.
+Day 5: Social proof + community — stories of others succeeding, invite them to share their progress.
+Day 6: Introduce a related solution — frame it as the logical next step after implementing the main offer.
+Day 7: Benefits/demo of related solution — make it feel like the obvious continuation of their journey.`
   };
 
   try {
+    const dayCount = sequence_type === 'non_buyers' ? 5 : 7;
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 5000,
-      system: SOLO_ADS_KB,
-      messages: [{
-        role: 'user',
-        content: `Write a complete ${sequence_type === 'non_buyers' ? 'Non-Buyers' : 'Buyers'} email sequence using the ${angle} angle.
+      model: 'claude-sonnet-4-20250514', max_tokens: 6000, system: SOLO_ADS_KB,
+      messages: [{ role: 'user', content: `Write a complete ${sequence_type === 'non_buyers' ? 'Non-Buyers 5-Day' : 'Buyers 7-Day'} email sequence. Angle: ${angle}.
 
 Offer: ${analysis.product_name}
 Niche: ${analysis.niche}
-Main pain point: ${analysis.main_pain_point}
-Main benefit: ${analysis.main_benefit}
-Audience psychology: ${analysis.audience_psychology || ''}
-${leadMagnetContext}
+Pain: ${analysis.main_pain_point}
+Benefit: ${analysis.main_benefit}
+Psychology: ${analysis.audience_psychology}
+${lmContext}
 ${bonusContext}
 
-${sequenceInstructions[sequence_type]}
+${sequences[sequence_type]}
 
-EMAIL WRITING RULES — CRITICAL:
-- Write every email IN FULL. No placeholders. No "[write story here]". Actual copy.
-- Use [FirstName] for personalization
-- Use [YourAffiliateLink] for the offer link
-- Use [YourName] for sign-off
-- Subject lines: one curiosity-based, one direct benefit, one relatable question
-- Keep paragraphs short — 1-3 sentences max
-- Use line breaks generously — emails must be easy to skim
-- End every non-buyers email with a PS that reinforces the main reason to act
+CRITICAL EMAIL RULES:
+- Write EVERY email IN FULL — no placeholders, no [write story here], actual copy
+- Use [FirstName], [YourAffiliateLink], [YourName]
+- Short paragraphs — 1-3 sentences max
+- Generous line breaks — easy to skim on mobile
+- 3 subject lines per email: one curiosity, one direct benefit, one relatable question
+- Non-buyer emails: every email ends with PS reinforcing main reason to act
+- Write emails people actually want to read — not corporate, not hype
 
-Return ONLY a valid JSON array of 4 emails with no text before or after:
-[
-  {
-    "day": 1,
-    "subject_lines": ["Curiosity subject option", "Direct benefit subject option", "Relatable question subject option"],
-    "body": "Complete full email body — every word written out, no placeholders for content"
-  }
-]`
-      }]
+Return ONLY a valid JSON array of ${dayCount} emails:
+[{"day":1,"subject_lines":["option1","option2","option3"],"body":"complete email body"}]` }]
     });
 
     let emails;
     try { emails = JSON.parse(message.content[0].text.replace(/```json|```/g, '').trim()); }
     catch {
-      try {
-        const match = message.content[0].text.match(/\[[\s\S]*\]/);
-        if (match) emails = JSON.parse(match[0]);
-        else throw new Error('No array found');
-      } catch { return res.status(500).json({ success: false, message: 'Failed to parse email content' }); }
+      const match = message.content[0].text.match(/\[[\s\S]*\]/);
+      if (match) { try { emails = JSON.parse(match[0]); } catch { emails = null; } }
     }
+    if (!emails) return res.status(500).json({ success: false, message: 'Failed to parse emails' });
 
     const contentType = sequence_type === 'non_buyers' ? 'emails_non_buyers' : 'emails_buyers';
     if (project_id) {
-      await adminClient.from('promolab_project_content').upsert({
-        project_id, user_id: user.id, content_type: contentType,
-        content: JSON.stringify(emails), updated_at: new Date().toISOString()
-      }, { onConflict: 'project_id,content_type' });
+      await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: contentType, content: JSON.stringify(emails), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
-
     res.json({ success: true, emails });
   } catch (err) { res.status(500).json({ success: false, message: 'Email generation failed: ' + err.message }); }
 });
@@ -770,50 +735,35 @@ app.post('/api/generate/blueprint', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
   const { analysis, angle, bonuses, lead_magnet, project_id } = req.body;
-  if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Analysis and angle required' });
-
+  if (!analysis || !angle) return res.status(400).json({ success: false, message: 'Missing required fields' });
   const access = await getUserAccess(user.id);
   if (!access.solo_ads) return res.status(403).json({ success: false, message: 'Solo Ads channel not unlocked' });
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: SOLO_ADS_KB,
-      messages: [{
-        role: 'user',
-        content: `Create a complete copy-paste implementation blueprint for this affiliate funnel.
+      model: 'claude-sonnet-4-20250514', max_tokens: 4000, system: SOLO_ADS_KB,
+      messages: [{ role: 'user', content: `Create a complete copy-paste funnel blueprint.
 
-Offer: ${analysis.product_name}
-Angle: ${angle}
+Offer: ${analysis.product_name} | Angle: ${angle}
 Lead magnet: ${lead_magnet ? lead_magnet.title : 'None'}
-Bonuses: ${bonuses ? bonuses.map(b => b.title).join(', ') : 'None'}
+Bonuses: ${bonuses ? bonuses.map(b=>b.title).join(', ') : 'None'}
 
-Write a complete funnel assembly guide that covers:
-1. Funnel flow overview (the exact sequence from ad click to buyer)
-2. Opt-in page setup (what goes where, design notes)
-3. Bridge page setup (what goes where, video placement if applicable)
-4. Lead magnet delivery setup
-5. Email automation setup (triggers, timing, segments)
-6. Bonus claim process
+Write a practical implementation guide covering:
+1. Funnel flow overview
+2. Opt-in page setup (structure, design notes, what goes above fold)
+3. Bridge page setup (layout, video placement, bonus section)
+4. Lead magnet delivery
+5. Email automation setup (triggers, timing, segmentation)
+6. Bonus delivery and claim process
 7. Asset placement checklist
-8. Tracking setup (what metrics to track and where)
-9. Final build order (step by step)
+8. Tracking setup
+9. Build order (step by step)
 10. Pre-launch test checklist
 
-Be specific and practical. This should read like instructions from someone who has built 100 of these funnels.
+Be specific. Write like someone who has built 100 of these funnels.
 
 Return ONLY valid JSON:
-{
-  "title": "Blueprint title",
-  "sections": [
-    {
-      "heading": "Section heading",
-      "content": "Full section content — specific, practical, actionable"
-    }
-  ]
-}`
-      }]
+{"title":"Blueprint title","sections":[{"heading":"Section heading","content":"Full detailed content"}]}` }]
     });
 
     let blueprint;
@@ -821,14 +771,121 @@ Return ONLY valid JSON:
     catch { return res.status(500).json({ success: false, message: 'Failed to parse blueprint' }); }
 
     if (project_id) {
-      await adminClient.from('promolab_project_content').upsert({
-        project_id, user_id: user.id, content_type: 'blueprint',
-        content: JSON.stringify(blueprint), updated_at: new Date().toISOString()
-      }, { onConflict: 'project_id,content_type' });
+      await adminClient.from('promolab_project_content').upsert({ project_id, user_id: user.id, content_type: 'blueprint', content: JSON.stringify(blueprint), updated_at: new Date().toISOString() }, { onConflict: 'project_id,content_type' });
     }
-
     res.json({ success: true, blueprint });
-  } catch (err) { res.status(500).json({ success: false, message: 'Blueprint generation failed: ' + err.message }); }
+  } catch (err) { res.status(500).json({ success: false, message: 'Blueprint failed: ' + err.message }); }
+});
+
+// ── DOWNLOAD: SINGLE BONUS as DOCX ───────────────────────────
+app.post('/api/download/bonus', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { bonus, product_name } = req.body;
+  if (!bonus) return res.status(400).json({ success: false, message: 'Bonus required' });
+  try {
+    const children = parseContentToDocx(bonus.full_content, product_name || 'this offer', bonus.title, bonus.tagline || bonus.type, `Exclusive Buyer Bonus #${bonus.number}`);
+    const filename = `Bonus-${bonus.number}-${(bonus.title||'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40)}.docx`;
+    await buildAndSendDocx(res, children, filename);
+  } catch (err) { res.status(500).json({ success: false, message: 'Download failed: ' + err.message }); }
+});
+
+// ── DOWNLOAD: ALL BONUSES — 3 separate DOCX in zip, or individual ──
+app.post('/api/download/bonuses-all', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { bonuses, product_name } = req.body;
+  if (!bonuses || !bonuses.length) return res.status(400).json({ success: false, message: 'Bonuses required' });
+  // Return a combined HTML index with download links for each — simpler than zip
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bonus Stack — ${escHtml(product_name||'Your Offer')}</title>
+<style>body{font-family:Arial,sans-serif;max-width:600px;margin:60px auto;padding:20px;color:#1A1A2E}
+h1{font-size:24px;margin-bottom:8px}p{color:#555;margin-bottom:32px}
+.item{border:1px solid #EEEDFE;border-radius:10px;padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.num{width:36px;height:36px;border-radius:50%;background:#4F46B8;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.info{flex:1}.title{font-weight:700;font-size:15px}.desc{font-size:13px;color:#666;margin-top:3px}
+.tag{font-size:11px;background:#EEEDFE;color:#3C3489;padding:2px 8px;border-radius:4px;font-weight:700}</style></head>
+<body>
+<h1>Your Bonus Stack</h1>
+<p>Your 3 exclusive buyer bonuses for ${escHtml(product_name||'this offer')}. Each is downloaded as a separate document.</p>
+${bonuses.map(b=>`<div class="item"><div class="num">${b.number}</div><div class="info"><div class="title">${escHtml(b.title)}</div><div class="desc">${escHtml(b.description)}</div><div style="margin-top:6px"><span class="tag">${escHtml(b.type)}</span></div></div></div>`).join('')}
+<p style="margin-top:24px;font-size:13px;color:#888">To download individual bonuses as Word documents, use the Download button next to each bonus.</p>
+</body></html>`;
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Disposition', `attachment; filename="Bonus-Stack-Index.html"`);
+  res.send(html);
+});
+
+// ── DOWNLOAD: LEAD MAGNET as DOCX ─────────────────────────────
+app.post('/api/download/lead-magnet', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { lead_magnet, product_name } = req.body;
+  if (!lead_magnet) return res.status(400).json({ success: false, message: 'Lead magnet required' });
+  try {
+    const children = [
+      ...makeCoverPage(lead_magnet.title, lead_magnet.subtitle || '', 'Free Guide', product_name || 'JGAffiliate'),
+      ...lead_magnet.full_content.split('\n').map(line => {
+        const t = line.trim();
+        if (!t) return new Paragraph({ spacing: { before: 60, after: 60 }, children: [] });
+        if (t.startsWith('### ')) return makeHeading(t.slice(4), 3);
+        if (t.startsWith('## ')) return makeHeading(t.slice(3), 2);
+        if (t.startsWith('# ')) return makeHeading(t.slice(2), 1);
+        if (t.startsWith('- ') || t.startsWith('• ')) return makeBullet(t.slice(2));
+        if (/^\d+\.\s/.test(t)) return makeBullet(t);
+        if (t.startsWith('**') && t.endsWith('**')) return makeParagraph(t.slice(2,-2), { bold: true, size: 26, spaceBefore: 160, spaceAfter: 80 });
+        return makeParagraph(t, { spaceBefore: 80, spaceAfter: 80 });
+      }),
+      makeDivider(),
+      makeParagraph('© 2026 PromoLab · Jimmy Griffith, JGAffiliate', { center: true, size: 18, color: 'AAAAAA', spaceBefore: 200 })
+    ];
+    const filename = `Lead-Magnet-${(lead_magnet.title||'guide').replace(/[^a-z0-9]/gi,'_').slice(0,40)}.docx`;
+    await buildAndSendDocx(res, children, filename);
+  } catch (err) { res.status(500).json({ success: false, message: 'Download failed: ' + err.message }); }
+});
+
+// ── DOWNLOAD: OPT-IN PAGE HTML ────────────────────────────────
+app.post('/api/download/optin-html', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { html_content, product_name } = req.body;
+  if (!html_content) return res.status(400).json({ success: false, message: 'HTML required' });
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Disposition', `attachment; filename="Opt-In-Page-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
+  res.send(html_content);
+});
+
+// ── DOWNLOAD: BRIDGE PAGE HTML ────────────────────────────────
+app.post('/api/download/bridge-html', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { html_content, product_name } = req.body;
+  if (!html_content) return res.status(400).json({ success: false, message: 'HTML required' });
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Disposition', `attachment; filename="Bridge-Page-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
+  res.send(html_content);
+});
+
+// ── DOWNLOAD: BLUEPRINT ───────────────────────────────────────
+app.post('/api/download/blueprint', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const { blueprint, product_name } = req.body;
+  if (!blueprint) return res.status(400).json({ success: false, message: 'Blueprint required' });
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escHtml(blueprint.title||'Blueprint')}</title>
+<style>body{font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:48px 32px;color:#1A1A2E}
+.cover{text-align:center;padding:60px 0 40px;border-bottom:3px solid #4F46B8;margin-bottom:48px}
+.eyebrow{font-size:11px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:12px}
+h1{font-size:30px;font-weight:700;margin:0 0 12px}
+.section{margin-bottom:40px;padding-bottom:32px;border-bottom:1px solid #EEEDFE}
+h2{font-size:20px;font-weight:700;color:#4F46B8;margin:0 0 16px}
+.content{font-size:14px;line-height:1.9;white-space:pre-wrap}
+.footer{margin-top:48px;padding-top:20px;border-top:1px solid #EEEDFE;font-size:11px;color:#aaa;text-align:center}</style></head>
+<body><div class="cover"><div class="eyebrow">Funnel Implementation Guide</div><h1>${escHtml(blueprint.title||'Blueprint')}</h1><p style="color:#555">${escHtml(product_name||'')}</p></div>
+${(blueprint.sections||[]).map(s=>`<div class="section"><h2>${escHtml(s.heading)}</h2><div class="content">${escHtml(s.content)}</div></div>`).join('')}
+<div class="footer">PromoLab by Jimmy Griffith, JGAffiliate</div></body></html>`;
+  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Disposition', `attachment; filename="Blueprint-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
+  res.send(html);
 });
 
 // ── PROJECT MANAGEMENT ────────────────────────────────────────
@@ -836,23 +893,16 @@ app.post('/api/projects', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
   const { name, url, analysis, angle, channel } = req.body;
-  const { data, error } = await adminClient.from('promolab_projects').insert({
-    user_id: user.id, name: name || analysis.product_name,
-    url: url || '', channel: channel || 'solo_ads',
-    angle, analysis: JSON.stringify(analysis),
-    created_at: new Date().toISOString(), updated_at: new Date().toISOString()
-  }).select().single();
+  const { data, error } = await adminClient.from('promolab_projects').insert({ user_id: user.id, name: name || analysis.product_name, url: url || '', channel: channel || 'solo_ads', angle, analysis: JSON.stringify(analysis), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single();
   if (error) return res.status(400).json({ success: false, message: error.message });
   res.json({ success: true, project: data });
 });
-
 app.get('/api/projects', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
   const { data } = await adminClient.from('promolab_projects').select('*').eq('user_id', user.id).order('updated_at', { ascending: false });
   res.json({ success: true, projects: data || [] });
 });
-
 app.get('/api/projects/:id', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
@@ -860,12 +910,9 @@ app.get('/api/projects/:id', async (req, res) => {
   if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
   const { data: content } = await adminClient.from('promolab_project_content').select('*').eq('project_id', req.params.id);
   const contentMap = {};
-  (content || []).forEach(c => {
-    try { contentMap[c.content_type] = JSON.parse(c.content); } catch { contentMap[c.content_type] = c.content; }
-  });
+  (content || []).forEach(c => { try { contentMap[c.content_type] = JSON.parse(c.content); } catch { contentMap[c.content_type] = c.content; } });
   res.json({ success: true, project, content: contentMap });
 });
-
 app.delete('/api/projects/:id', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
@@ -884,17 +931,10 @@ app.post('/api/admin/access', async (req, res) => {
   const { data: users } = await adminClient.auth.admin.listUsers();
   const found = users.users.find(u => u.email === target_email);
   if (!found) return res.status(404).json({ success: false, message: 'User not found' });
-  const { error } = await adminClient.from('promolab_access').upsert({
-    user_id: found.id,
-    solo_ads: solo_ads || false, facebook: facebook || false,
-    email_sequence: email_sequence || false, launchjacking: launchjacking || false,
-    affiliate_launch_guide: affiliate_launch_guide || false,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'user_id' });
+  const { error } = await adminClient.from('promolab_access').upsert({ user_id: found.id, solo_ads: solo_ads||false, facebook: facebook||false, email_sequence: email_sequence||false, launchjacking: launchjacking||false, affiliate_launch_guide: affiliate_launch_guide||false, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   if (error) return res.status(400).json({ success: false, message: error.message });
   res.json({ success: true, message: 'Access updated for ' + target_email });
 });
-
 app.get('/api/admin/users', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
@@ -904,160 +944,4 @@ app.get('/api/admin/users', async (req, res) => {
   res.json({ success: true, users: data || [] });
 });
 
-// ── DOWNLOAD BONUS (single) ───────────────────────────────────
-app.post('/api/download/bonus', async (req, res) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-  const { bonus, product_name } = req.body;
-  if (!bonus) return res.status(400).json({ success: false, message: 'Bonus data required' });
-
-  const coverImg = bonus.cover_image
-    ? `<img src="${bonus.cover_image}" style="width:200px;height:200px;border-radius:8px;margin:0 auto 24px;display:block;">`
-    : `<div style="width:200px;height:200px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;text-align:center;padding:20px;">${bonus.title || 'Bonus'}</div>`;
-
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${bonus.title}</title>
-<style>body{font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:48px 32px;color:#1A1A2E}
-.header{text-align:center;margin-bottom:40px;border-bottom:3px solid #4F46B8;padding-bottom:32px}
-.eyebrow{font-size:11px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:8px}
-.bonus-label{display:inline-block;background:#4F46B8;color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px}
-h1{font-size:26px;font-weight:700;color:#1A1A2E;margin:0 0 12px;line-height:1.3}
-.description{font-size:14px;color:#555;line-height:1.6;margin-bottom:0}
-.content{font-size:14px;line-height:1.9;color:#333;white-space:pre-wrap;margin-top:32px}
-.footer{margin-top:48px;padding-top:20px;border-top:1px solid #EEEDFE;font-size:11px;color:#aaa;text-align:center}
-@media print{body{padding:24px}}</style></head>
-<body><div class="header">${coverImg}
-<div class="eyebrow">Exclusive Buyer Bonus</div>
-<span class="bonus-label">Bonus #${bonus.number} &mdash; ${bonus.type}</span>
-<h1>${bonus.title}</h1>
-<p class="description">${bonus.description}</p></div>
-<div class="content">${(bonus.full_content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-<div class="footer">Exclusive bonus for buyers of ${(product_name || 'this offer').replace(/</g,'&lt;')} &bull; PromoLab by Jimmy Griffith, JGAffiliate</div>
-</body></html>`;
-
-  res.setHeader('Content-Type', 'text/html');
-  res.setHeader('Content-Disposition', `attachment; filename="Bonus-${bonus.number}-${(bonus.title||'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40)}.html"`);
-  res.send(html);
-});
-
-// ── DOWNLOAD ALL BONUSES ──────────────────────────────────────
-app.post('/api/download/bonuses-all', async (req, res) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-  const { bonuses, product_name } = req.body;
-  if (!bonuses || !bonuses.length) return res.status(400).json({ success: false, message: 'Bonuses required' });
-
-  let allBonusesHtml = '';
-  bonuses.forEach(function(bonus) {
-    const coverImg = bonus.cover_image
-      ? `<img src="${bonus.cover_image}" style="width:200px;height:200px;border-radius:8px;margin:0 auto 24px;display:block;">`
-      : `<div style="width:200px;height:200px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;text-align:center;padding:20px;">${bonus.title || 'Bonus'}</div>`;
-    allBonusesHtml += `<div class="bonus-section">
-      <div class="bonus-header">${coverImg}
-      <div class="eyebrow">Exclusive Buyer Bonus #${bonus.number}</div>
-      <span class="bonus-label">${bonus.type}</span>
-      <h2>${bonus.title}</h2>
-      <p class="description">${bonus.description}</p></div>
-      <div class="content">${(bonus.full_content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-      </div><div class="page-break"></div>`;
-  });
-
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Bonus Stack — ${(product_name||'Your Offer').replace(/</g,'&lt;')}</title>
-<style>body{font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:48px 32px;color:#1A1A2E}
-.cover-page{text-align:center;padding:80px 40px;border-bottom:3px solid #4F46B8;margin-bottom:60px}
-.cover-page h1{font-size:32px;font-weight:700;margin:0 0 12px}
-.cover-page p{font-size:15px;color:#555}
-.bonus-section{margin-bottom:60px}
-.bonus-header{text-align:center;margin-bottom:32px;padding-bottom:28px;border-bottom:2px solid #EEEDFE}
-.eyebrow{font-size:11px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:8px}
-.bonus-label{display:inline-block;background:#4F46B8;color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px}
-h2{font-size:24px;font-weight:700;margin:0 0 12px;line-height:1.3}
-.description{font-size:14px;color:#555;line-height:1.6;margin:0}
-.content{font-size:14px;line-height:1.9;color:#333;white-space:pre-wrap}
-.page-break{page-break-after:always;border-bottom:1px solid #EEEDFE;margin:40px 0}
-.footer{margin-top:48px;padding-top:20px;border-top:1px solid #EEEDFE;font-size:11px;color:#aaa;text-align:center}
-@media print{.page-break{page-break-after:always}.cover-page{page-break-after:always}}</style></head>
-<body>
-<div class="cover-page">
-<div class="eyebrow">Exclusive Buyer Bonus Package</div>
-<h1>${(product_name||'Your Offer').replace(/</g,'&lt;')}</h1>
-<p>Thank you for your purchase. Here are your ${bonuses.length} exclusive bonuses.</p></div>
-${allBonusesHtml}
-<div class="footer">Exclusive bonus package &bull; PromoLab by Jimmy Griffith, JGAffiliate</div>
-</body></html>`;
-
-  res.setHeader('Content-Type', 'text/html');
-  res.setHeader('Content-Disposition', `attachment; filename="Complete-Bonus-Stack-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
-  res.send(html);
-});
-
-// ── DOWNLOAD LEAD MAGNET ──────────────────────────────────────
-app.post('/api/download/lead-magnet', async (req, res) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-  const { lead_magnet, product_name } = req.body;
-  if (!lead_magnet) return res.status(400).json({ success: false, message: 'Lead magnet data required' });
-
-  const coverImg = lead_magnet.cover_image
-    ? `<img src="${lead_magnet.cover_image}" style="width:220px;height:220px;border-radius:8px;margin:0 auto 24px;display:block;">`
-    : `<div style="width:220px;height:220px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;text-align:center;padding:24px;">${lead_magnet.title || 'Free Guide'}</div>`;
-
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${lead_magnet.title}</title>
-<style>body{font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:48px 32px;color:#1A1A2E}
-.header{text-align:center;margin-bottom:40px;border-bottom:3px solid #4F46B8;padding-bottom:32px}
-.free-tag{display:inline-block;background:#EAF3DE;color:#1D6A3A;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;margin-bottom:16px;text-transform:uppercase;letter-spacing:0.06em}
-h1{font-size:28px;font-weight:700;color:#1A1A2E;margin:0 0 10px;line-height:1.3}
-.subtitle{font-size:16px;color:#555;line-height:1.5;margin:0}
-.content{font-size:14px;line-height:1.9;color:#333;white-space:pre-wrap;margin-top:32px}
-.footer{margin-top:48px;padding-top:20px;border-top:1px solid #EEEDFE;font-size:11px;color:#aaa;text-align:center}
-@media print{body{padding:24px}}</style></head>
-<body><div class="header">${coverImg}
-<span class="free-tag">Free Guide</span>
-<h1>${lead_magnet.title}</h1>
-<p class="subtitle">${lead_magnet.subtitle || ''}</p></div>
-<div class="content">${(lead_magnet.full_content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-<div class="footer">Free guide courtesy of ${(product_name || 'JGAffiliate').replace(/</g,'&lt;')} &bull; PromoLab by Jimmy Griffith, JGAffiliate</div>
-</body></html>`;
-
-  res.setHeader('Content-Type', 'text/html');
-  res.setHeader('Content-Disposition', `attachment; filename="Lead-Magnet-${(lead_magnet.title||'guide').replace(/[^a-z0-9]/gi,'_').slice(0,40)}.html"`);
-  res.send(html);
-});
-
-// ── DOWNLOAD BLUEPRINT ────────────────────────────────────────
-app.post('/api/download/blueprint', async (req, res) => {
-  const user = await requireUser(req, res);
-  if (!user) return;
-  const { blueprint, product_name } = req.body;
-  if (!blueprint) return res.status(400).json({ success: false, message: 'Blueprint data required' });
-
-  let sectionsHtml = (blueprint.sections || []).map(s =>
-    `<div class="section"><h2>${s.heading}</h2><div class="content">${(s.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`
-  ).join('');
-
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${blueprint.title || 'Funnel Blueprint'}</title>
-<style>body{font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:48px 32px;color:#1A1A2E}
-.cover{text-align:center;padding:60px 0 40px;border-bottom:3px solid #4F46B8;margin-bottom:48px}
-.eyebrow{font-size:11px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:12px}
-h1{font-size:30px;font-weight:700;margin:0 0 12px;line-height:1.3}
-.cover p{font-size:14px;color:#555}
-.section{margin-bottom:40px;padding-bottom:32px;border-bottom:1px solid #EEEDFE}
-h2{font-size:20px;font-weight:700;color:#4F46B8;margin:0 0 16px}
-.content{font-size:14px;line-height:1.9;color:#333;white-space:pre-wrap}
-.footer{margin-top:48px;padding-top:20px;border-top:1px solid #EEEDFE;font-size:11px;color:#aaa;text-align:center}
-@media print{body{padding:24px}}</style></head>
-<body>
-<div class="cover">
-<div class="eyebrow">Funnel Implementation Guide</div>
-<h1>${blueprint.title || 'Copy-Paste Blueprint'}</h1>
-<p>Complete assembly instructions for your ${(product_name||'affiliate').replace(/</g,'&lt;')} funnel</p></div>
-${sectionsHtml}
-<div class="footer">PromoLab by Jimmy Griffith, JGAffiliate</div>
-</body></html>`;
-
-  res.setHeader('Content-Type', 'text/html');
-  res.setHeader('Content-Disposition', `attachment; filename="Funnel-Blueprint-${(product_name||'offer').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.html"`);
-  res.send(html);
-});
-
-app.listen(PORT, () => console.log('PromoLab v3 running on port ' + PORT));
+app.listen(PORT, () => console.log('PromoLab v4 running on port ' + PORT));
