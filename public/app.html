@@ -16,14 +16,11 @@ body{font-family:Arial,sans-serif;background:#F0F0F8;color:#1A1A2E;min-height:10
 .logout-btn{background:transparent;color:#fff;border:1px solid #4F46B8;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:700}
 .logout-btn:hover{background:#4F46B8}
 .card{background:#fff;padding:22px 24px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:14px}
-.card.top{border-radius:0 0 0 0}
 .card.solo{border-radius:10px}
-.card.bottom{border-radius:0 0 10px 10px}
 .section-label{font-size:10px;font-weight:700;color:#4F46B8;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EEEDFE;display:flex;align-items:center;justify-content:space-between}
 label{font-size:13px;color:#555;display:block;margin-bottom:4px;font-weight:700}
 input,select,textarea{width:100%;padding:9px 13px;border:1px solid #D0CFEE;border-radius:7px;font-size:13px;margin-bottom:12px;font-family:Arial,sans-serif;color:#1A1A2E;background:#fff}
 input:focus,select:focus,textarea:focus{outline:none;border-color:#4F46B8}
-textarea{resize:vertical;min-height:80px}
 .btn{background:#4F46B8;color:#fff;border:none;border-radius:7px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s}
 .btn:hover{background:#3C3489}
 .btn:disabled{opacity:0.5;cursor:not-allowed}
@@ -31,8 +28,6 @@ textarea{resize:vertical;min-height:80px}
 .btn-outline:hover{background:#EEEDFE}
 .btn-sm{padding:6px 12px;font-size:11px}
 .btn-full{width:100%}
-.btn-danger{background:#fff;color:#7A1010;border:1px solid #F09595}
-.btn-danger:hover{background:#FCEBEB}
 .alert{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:12px;font-weight:700}
 .alert-success{background:#EAF3DE;color:#1D6A3A}
 .alert-error{background:#FCEBEB;color:#7A1010}
@@ -68,8 +63,7 @@ textarea{resize:vertical;min-height:80px}
 .status-needs{background:#FFF3CD;color:#856404}
 .dep-notice{background:#FFF3CD;border:1px solid #FAC775;border-radius:7px;padding:12px 14px;font-size:13px;color:#856404;margin-bottom:12px}
 .dep-notice strong{display:block;margin-bottom:4px}
-.dep-btns{display:flex;gap:8px;margin-top:8px}
-.output-section{margin-bottom:16px}
+.dep-btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .output-label{font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .output-box{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:14px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:#1A1A2E}
 .copy-btn{font-size:11px;padding:3px 10px;border-radius:5px;cursor:pointer;border:1px solid #D0CFEE;background:#fff;color:#555}
@@ -79,8 +73,7 @@ textarea{resize:vertical;min-height:80px}
 .bonus-num{width:28px;height:28px;border-radius:50%;background:#4F46B8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .bonus-title{font-size:14px;font-weight:700}
 .bonus-type{font-size:11px;color:#888}
-.bonus-cover{width:100%;max-width:200px;border-radius:6px;margin-bottom:10px;border:1px solid #EEEDFE}
-.bonus-cover-placeholder{width:200px;height:200px;background:#EEEDFE;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888;margin-bottom:10px}
+.bonus-cover{width:100%;max-width:180px;border-radius:6px;margin-bottom:10px;border:1px solid #EEEDFE}
 .ab-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .ab-card{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:7px;padding:12px}
 .ab-label{font-size:10px;font-weight:700;color:#4F46B8;text-transform:uppercase;margin-bottom:6px}
@@ -88,7 +81,9 @@ textarea{resize:vertical;min-height:80px}
 .email-card{border:1px solid #EEEDFE;border-radius:8px;padding:14px;margin-bottom:10px}
 .email-day{font-size:11px;font-weight:700;color:#4F46B8;text-transform:uppercase;margin-bottom:8px}
 .subject-options{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-.subject-opt{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:5px;padding:6px 10px;font-size:12px;display:flex;align-items:center;justify-content:space-between}
+.subject-opt{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:5px;padding:6px 10px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.blueprint-section{border:1px solid #EEEDFE;border-radius:8px;padding:14px;margin-bottom:10px}
+.blueprint-heading{font-size:13px;font-weight:700;color:#4F46B8;margin-bottom:8px}
 .projects-list{display:flex;flex-direction:column;gap:8px}
 .project-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0F0F8;cursor:pointer}
 .project-row:last-child{border-bottom:none}
@@ -98,16 +93,18 @@ textarea{resize:vertical;min-height:80px}
 .project-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:#EEEDFE;color:#3C3489}
 .angle-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;background:#E3F0FB;color:#0C447C;margin-top:4px}
 .summary-box{background:#E3F0FB;border:1px solid #B3D4F0;border-radius:8px;padding:14px;font-size:13px;line-height:1.6;color:#0C447C;margin-bottom:14px}
+.pain-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pain-tag{background:#FCEBEB;color:#7A1010;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px}
 .loading-state{text-align:center;padding:32px;color:#888;font-size:13px}
 .loading-state .spin{display:inline-block;width:20px;height:20px;border:2px solid #EEEDFE;border-top-color:#4F46B8;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.divider{height:1px;background:#F0F0F8;margin:14px 0}
 .footer{text-align:center;font-size:11px;color:#999;margin-top:16px}
 .tabs{display:flex;gap:0;border-bottom:2px solid #EEEDFE;margin-bottom:16px}
 .tab{padding:8px 16px;font-size:13px;font-weight:700;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;border-top:none;border-left:none;border-right:none}
 .tab.active{color:#4F46B8;border-bottom-color:#4F46B8}
 .regen-btn{font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;border:1px solid #D0CFEE;background:#fff;color:#4F46B8;margin-left:8px}
 .regen-btn:hover{background:#EEEDFE}
+.stack-image{width:100%;max-width:320px;border-radius:8px;margin:0 auto 14px;display:block;border:1px solid #EEEDFE}
 </style>
 </head>
 <body>
@@ -125,18 +122,15 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div>
 
-<!-- Main tabs -->
-<div class="card top" style="border-radius:0;padding-bottom:0">
+<div class="card" style="border-radius:0;padding-bottom:0;margin-bottom:0">
   <div class="tabs">
     <button class="tab active" onclick="showMainTab('workspace')">Workspace</button>
     <button class="tab" onclick="showMainTab('projects')">My projects</button>
   </div>
 </div>
 
-<!-- WORKSPACE TAB -->
+<!-- WORKSPACE -->
 <div id="main-workspace">
-
-  <!-- Step 1: URL -->
   <div class="card">
     <div class="section-label">Step 1 — Analyze the offer</div>
     <label>Sales page URL</label>
@@ -147,34 +141,31 @@ textarea{resize:vertical;min-height:80px}
     <button class="btn btn-full" id="analyze-btn" onclick="analyzeUrl()">Analyze this page &rarr;</button>
   </div>
 
-  <!-- Offer summary + score -->
   <div class="card" id="summary-card" style="display:none">
     <div class="section-label">
       Offer summary
       <span id="overall-score-badge" style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;background:#EAF3DE;color:#1D6A3A"></span>
     </div>
     <div class="summary-box" id="summary-text"></div>
+    <div id="pain-tags-row" class="pain-tags"></div>
     <div class="score-grid" id="score-grid"></div>
     <div style="font-size:12px;color:#888;margin-bottom:12px" id="score-notes"></div>
     <div style="font-size:13px;color:#555;margin-bottom:4px"><strong>Recommended angle:</strong> <span id="rec-angle" class="angle-badge"></span></div>
     <div style="font-size:12px;color:#888;margin-bottom:0" id="angle-reason"></div>
   </div>
 
-  <!-- Step 2: Channel -->
   <div class="card" id="channel-card" style="display:none">
     <div class="section-label">Step 2 — Choose your channel</div>
     <div class="channel-menu" id="channel-menu"></div>
   </div>
 
-  <!-- Step 3: Angle (shown after channel selected) -->
   <div class="card" id="angle-card" style="display:none">
     <div class="section-label">Step 3 — Confirm your angle</div>
-    <p style="font-size:13px;color:#555;margin-bottom:12px">This angle applies to everything you create in this project. Start a new project to try a different angle.</p>
+    <p style="font-size:13px;color:#555;margin-bottom:12px">This angle applies to everything in this project. Start a new project to try a different angle.</p>
     <div id="angle-options" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
-    <button class="btn btn-full" id="confirm-angle-btn" onclick="confirmAngle()">Confirm angle &amp; continue &rarr;</button>
+    <button class="btn btn-full" onclick="confirmAngle()">Confirm angle &amp; continue &rarr;</button>
   </div>
 
-  <!-- Step 4: Creation menu -->
   <div class="card" id="creation-card" style="display:none">
     <div class="section-label">
       Step 4 — What do you want to create?
@@ -183,12 +174,10 @@ textarea{resize:vertical;min-height:80px}
     <div class="action-menu" id="action-menu"></div>
   </div>
 
-  <!-- Content output area -->
   <div id="content-output-area"></div>
-
 </div>
 
-<!-- PROJECTS TAB -->
+<!-- PROJECTS -->
 <div id="main-projects" style="display:none">
   <div class="card solo">
     <div class="section-label">My projects <span id="proj-count" style="font-weight:400;color:#888;font-size:11px"></span></div>
@@ -202,7 +191,8 @@ textarea{resize:vertical;min-height:80px}
 <script>
 var state = {
   user: null, access: {}, analysis: null, selectedChannel: null,
-  selectedAngle: null, projectId: null, bonuses: [], currentAction: null
+  selectedAngle: null, projectId: null, bonuses: [], stackSummary: '',
+  stackImage: null, leadMagnet: null, currentAction: null
 };
 
 var ANGLES = [
@@ -220,90 +210,85 @@ var CHANNELS = [
 ];
 
 var SOLO_ACTIONS = [
+  { key:'lead_magnet', name:'Lead magnet', desc:'Free incentive for opt-in page', icon:'📄', deps:[], provides:'lead_magnet' },
   { key:'bonuses', name:'Build bonus stack', desc:'3 buyer-only bonuses with cover images', icon:'🎁', deps:[], provides:'bonuses' },
   { key:'optin', name:'Opt-in page', desc:'Squeeze page with A/B headlines', icon:'📋', deps:[], provides:'optin' },
   { key:'bridge', name:'Bridge page', desc:'VSL script or text copy', icon:'🌉', deps:['bonuses'], provides:'bridge' },
   { key:'emails_non_buyers', name:'Email sequence — non-buyers', desc:'4-day convert to sale sequence', icon:'📨', deps:['bonuses'], provides:'emails_non_buyers' },
   { key:'emails_buyers', name:'Email sequence — buyers', desc:'4-day onboard & ascend sequence', icon:'📬', deps:[], provides:'emails_buyers' },
+  { key:'blueprint', name:'Copy-paste blueprint', desc:'Full funnel assembly guide', icon:'📐', deps:[], provides:'blueprint' },
   { key:'full_funnel', name:'Full funnel', desc:'Build everything in the right order', icon:'⚡', deps:[], provides:'full' }
 ];
 
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
   try {
-    var res = await fetch('/me', {credentials:'include'});
+    var res = await fetch('/me',{credentials:'include'});
     var data = await res.json();
-    if(!data.success || !data.user){ window.location.href='/login.html'; return; }
-    state.user = data.user;
-    state.access = data.access || {};
-    document.getElementById('userEmail').textContent = data.user.email;
-  } catch(e){ window.location.href='/login.html'; }
+    if(!data.success||!data.user){window.location.href='/login.html';return;}
+    state.user=data.user; state.access=data.access||{};
+    document.getElementById('userEmail').textContent=data.user.email;
+  } catch(e){window.location.href='/login.html';}
 }
 
-document.getElementById('logoutBtn').addEventListener('click', async function(){
-  await fetch('/logout', {method:'POST', credentials:'include'});
+document.getElementById('logoutBtn').addEventListener('click',async function(){
+  await fetch('/logout',{method:'POST',credentials:'include'});
   window.location.href='/';
 });
 
-// ── Main tabs ─────────────────────────────────────────────────
 function showMainTab(tab){
-  document.getElementById('main-workspace').style.display = tab==='workspace'?'block':'none';
-  document.getElementById('main-projects').style.display = tab==='projects'?'block':'none';
-  document.querySelectorAll('.tab').forEach(function(t,i){
-    t.classList.toggle('active', ['workspace','projects'][i]===tab);
-  });
+  document.getElementById('main-workspace').style.display=tab==='workspace'?'block':'none';
+  document.getElementById('main-projects').style.display=tab==='projects'?'block':'none';
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['workspace','projects'][i]===tab);});
   if(tab==='projects') loadProjects();
 }
 
 // ── Step 1: Analyze ───────────────────────────────────────────
 async function analyzeUrl(){
-  var url = document.getElementById('url-input').value.trim();
-  if(!url){ showAlert('analyze-alert','Please enter a sales page URL.','alert-error'); return; }
-  var btn = document.getElementById('analyze-btn');
+  var url=document.getElementById('url-input').value.trim();
+  if(!url){showAlert('analyze-alert','Please enter a sales page URL.','alert-error');return;}
+  var btn=document.getElementById('analyze-btn');
   btn.disabled=true; btn.textContent='Analyzing...';
   try {
-    var res = await fetch('/api/analyze',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})});
-    var data = await res.json();
+    var res=await fetch('/api/analyze',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})});
+    var data=await res.json();
     if(data.success){
-      state.analysis = data.analysis;
+      state.analysis=data.analysis;
       renderSummary(data.analysis);
       document.getElementById('summary-card').style.display='block';
       document.getElementById('channel-card').style.display='block';
       renderChannels();
       hideAlert('analyze-alert');
-    } else { showAlert('analyze-alert', data.message||'Analysis failed.','alert-error'); }
-  } catch(e){ showAlert('analyze-alert','Network error. Please try again.','alert-error'); }
+    } else {showAlert('analyze-alert',data.message||'Analysis failed.','alert-error');}
+  } catch(e){showAlert('analyze-alert','Network error. Please try again.','alert-error');}
   btn.disabled=false; btn.textContent='Analyze this page \u2192';
 }
 
 function renderSummary(a){
-  document.getElementById('summary-text').textContent = a.summary || '';
-  var score = a.offer_score || {};
-  document.getElementById('overall-score-badge').textContent = 'Score: '+(score.overall||7)+'/10';
-  document.getElementById('score-notes').textContent = score.notes || '';
-  document.getElementById('rec-angle').textContent = a.recommended_angle || '';
-  document.getElementById('angle-reason').textContent = a.angle_reason || '';
-  var metrics = [
+  document.getElementById('summary-text').textContent=a.summary||'';
+  var score=a.offer_score||{};
+  document.getElementById('overall-score-badge').textContent='Score: '+(score.overall||7)+'/10';
+  document.getElementById('score-notes').textContent=score.notes||'';
+  document.getElementById('rec-angle').textContent=a.recommended_angle||'';
+  document.getElementById('angle-reason').textContent=a.angle_reason||'';
+  var painTags=[a.main_pain_point].concat(a.secondary_pain_points||[]).filter(Boolean).slice(0,4);
+  document.getElementById('pain-tags-row').innerHTML=painTags.map(function(p){return '<span class="pain-tag">'+esc(p)+'</span>';}).join('');
+  var metrics=[
     {label:'Commission',val:score.commission_rating||7},
     {label:'Niche demand',val:score.niche_demand||7},
     {label:'Conversion',val:score.conversion_potential||7},
     {label:'Tier 1 fit',val:score.tier1_suitability||7}
   ];
-  document.getElementById('score-grid').innerHTML = metrics.map(function(m){
-    return '<div class="score-card">'+
-      '<div class="score-val">'+m.val+'</div>'+
-      '<div class="score-label">'+m.label+'</div>'+
-      '<div class="score-bar"><div class="score-fill" style="width:'+(m.val*10)+'%"></div></div>'+
-      '</div>';
+  document.getElementById('score-grid').innerHTML=metrics.map(function(m){
+    return '<div class="score-card"><div class="score-val">'+m.val+'</div><div class="score-label">'+m.label+'</div><div class="score-bar"><div class="score-fill" style="width:'+(m.val*10)+'%"></div></div></div>';
   }).join('');
 }
 
 // ── Step 2: Channel ───────────────────────────────────────────
 function renderChannels(){
-  document.getElementById('channel-menu').innerHTML = CHANNELS.map(function(c){
-    var hasAccess = state.access[c.accessKey];
-    return '<div class="channel-item'+(hasAccess?'':' locked')+(state.selectedChannel===c.key?' selected':'')+'" '+
-      (hasAccess?'onclick="selectChannel(\''+c.key+'\')"':'')+'>'+
+  document.getElementById('channel-menu').innerHTML=CHANNELS.map(function(c){
+    var hasAccess=state.access[c.accessKey];
+    return '<div class="channel-item'+(hasAccess?'':' locked')+(state.selectedChannel===c.key?' selected':'')+'" '+(hasAccess?'onclick="selectChannel(\''+c.key+'\')"':'')+'>'+
       (hasAccess?'':'<span class="lock-tag">Upgrade $17</span>')+
       '<div class="ch-icon">'+c.icon+'</div>'+
       '<div class="ch-name">'+c.name+'</div>'+
@@ -314,7 +299,7 @@ function renderChannels(){
 }
 
 function selectChannel(key){
-  state.selectedChannel = key;
+  state.selectedChannel=key;
   renderChannels();
   document.getElementById('angle-card').style.display='block';
   renderAngles();
@@ -324,102 +309,86 @@ function selectChannel(key){
 }
 
 function showUpgrade(name){
-  var area = document.getElementById('content-output-area');
-  area.innerHTML = '<div class="card solo"><div class="alert alert-warning">To unlock '+esc(name)+', please contact Jimmy to upgrade your account for $17.</div></div>';
+  document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-warning">To unlock '+esc(name)+', please contact Jimmy to upgrade your account for $17.</div></div>';
 }
 
 // ── Step 3: Angle ─────────────────────────────────────────────
 function renderAngles(){
-  var rec = state.analysis && state.analysis.recommended_angle;
-  document.getElementById('angle-options').innerHTML = ANGLES.map(function(a){
-    var isRec = rec && rec.indexOf(a.key) !== -1;
-    return '<div style="border:1px solid '+(state.selectedAngle===a.key?'#4F46B8':'#EEEDFE')+';border-radius:8px;padding:12px;cursor:pointer;background:'+(state.selectedAngle===a.key?'#EEEDFE':'#fff')+'" onclick="pickAngle(\''+a.key+'\')">' +
+  var rec=state.analysis&&state.analysis.recommended_angle;
+  document.getElementById('angle-options').innerHTML=ANGLES.map(function(a){
+    var isRec=rec&&rec.indexOf(a.key)!==-1;
+    var sel=state.selectedAngle===a.key;
+    return '<div style="border:1px solid '+(sel?'#4F46B8':'#EEEDFE')+';border-radius:8px;padding:12px;cursor:pointer;background:'+(sel?'#EEEDFE':'#fff')+'" onclick="pickAngle(\''+a.key+'\')">'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
       '<div style="font-size:13px;font-weight:700">'+a.label+'</div>'+
       (isRec?'<span style="font-size:10px;background:#EAF3DE;color:#1D6A3A;padding:2px 7px;border-radius:4px;font-weight:700">Recommended</span>':'')+
-      '</div>'+
-      '<div style="font-size:12px;color:#888">'+a.desc+'</div>'+
-      '</div>';
+      '</div><div style="font-size:12px;color:#888">'+a.desc+'</div></div>';
   }).join('');
-  if(rec && !state.selectedAngle){
-    var found = ANGLES.find(function(a){ return rec.indexOf(a.key)!==-1; });
+  if(rec&&!state.selectedAngle){
+    var found=ANGLES.find(function(a){return rec.indexOf(a.key)!==-1;});
     if(found) pickAngle(found.key);
   }
 }
 
-function pickAngle(key){
-  state.selectedAngle = key;
-  renderAngles();
-}
+function pickAngle(key){state.selectedAngle=key;renderAngles();}
 
 async function confirmAngle(){
-  if(!state.selectedAngle){ alert('Please select an angle.'); return; }
+  if(!state.selectedAngle){alert('Please select an angle.');return;}
   try {
-    var res = await fetch('/api/projects',{method:'POST',credentials:'include',
+    var res=await fetch('/api/projects',{method:'POST',credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        name: state.analysis.product_name, url: document.getElementById('url-input').value.trim(),
-        analysis: state.analysis, angle: state.selectedAngle, channel: state.selectedChannel
-      })
+      body:JSON.stringify({name:state.analysis.product_name,url:document.getElementById('url-input').value.trim(),analysis:state.analysis,angle:state.selectedAngle,channel:state.selectedChannel})
     });
-    var data = await res.json();
-    if(data.success){ state.projectId = data.project.id; }
-  } catch(e){ console.log('Project save failed:', e.message); }
+    var data=await res.json();
+    if(data.success) state.projectId=data.project.id;
+  } catch(e){console.log('Project save failed:',e.message);}
   document.getElementById('angle-card').style.display='none';
   document.getElementById('creation-card').style.display='block';
-  document.getElementById('active-angle-badge').textContent = state.selectedAngle;
+  document.getElementById('active-angle-badge').textContent=state.selectedAngle;
   renderActionMenu();
   document.getElementById('creation-card').scrollIntoView({behavior:'smooth'});
 }
 
 // ── Step 4: Action menu ───────────────────────────────────────
+function getDoneItems(){
+  var done=[];
+  if(state.bonuses.length>0) done.push('bonuses');
+  if(state.leadMagnet) done.push('lead_magnet');
+  return done;
+}
+
 function renderActionMenu(){
-  var doneItems = state.bonuses.length>0?['bonuses']:[];
-  document.getElementById('action-menu').innerHTML = SOLO_ACTIONS.map(function(a){
-    var isDone = doneItems.indexOf(a.key)!==-1;
-    var needsDep = a.deps.length>0 && a.deps.some(function(d){ return doneItems.indexOf(d)===-1; });
+  var doneItems=getDoneItems();
+  document.getElementById('action-menu').innerHTML=SOLO_ACTIONS.map(function(a){
+    var isDone=doneItems.indexOf(a.key)!==-1;
+    var needsDep=a.deps.length>0&&a.deps.some(function(d){return doneItems.indexOf(d)===-1;});
     return '<div class="action-item'+(isDone?' done':'')+'" onclick="handleAction(\''+a.key+'\')">'+
       '<div class="ai-icon">'+a.icon+'</div>'+
-      '<div style="flex:1">'+
-      '<div class="ai-name">'+a.name+'</div>'+
-      '<div class="ai-desc">'+a.desc+'</div>'+
-      '</div>'+
+      '<div style="flex:1"><div class="ai-name">'+a.name+'</div><div class="ai-desc">'+a.desc+'</div></div>'+
       '<span class="ai-status '+(isDone?'status-done':needsDep?'status-needs':'status-ready')+'">'+(isDone?'Done':needsDep?'Needs bonuses':'Ready')+'</span>'+
       '</div>';
   }).join('');
 }
 
 function handleAction(key){
-  state.currentAction = key;
-  var doneItems = state.bonuses.length>0?['bonuses']:[];
-  var action = SOLO_ACTIONS.find(function(a){ return a.key===key; });
-  var needsDep = action && action.deps.length>0 && action.deps.some(function(d){ return doneItems.indexOf(d)===-1; });
-
-  if(needsDep){
-    showDepNotice(key, action.deps);
-    return;
-  }
-
-  if(key==='bonuses') buildBonuses();
+  state.currentAction=key;
+  var doneItems=getDoneItems();
+  var action=SOLO_ACTIONS.find(function(a){return a.key===key;});
+  var needsDep=action&&action.deps.length>0&&action.deps.some(function(d){return doneItems.indexOf(d)===-1;});
+  if(needsDep){showDepNotice(key,action.deps);return;}
+  if(key==='lead_magnet') buildLeadMagnet();
+  else if(key==='bonuses') buildBonuses();
   else if(key==='optin') buildOptin();
   else if(key==='bridge') buildBridge();
   else if(key==='emails_non_buyers') buildEmails('non_buyers');
   else if(key==='emails_buyers') buildEmails('buyers');
+  else if(key==='blueprint') buildBlueprint();
   else if(key==='full_funnel') buildFullFunnel();
 }
 
-function showDepNotice(key, deps){
-  var area = document.getElementById('content-output-area');
-  area.innerHTML = '<div class="card solo">'+
-    '<div class="dep-notice">'+
-    '<strong>Bonuses make this more powerful</strong>'+
-    'The '+deps.join(' and ')+' should be created first so they can be woven into this content. What would you like to do?'+
-    '<div class="dep-btns">'+
-    '<button class="btn btn-sm" onclick="buildBonuses()">Build bonuses first</button>'+
-    '<button class="btn btn-outline btn-sm" onclick="skipAndBuild(\''+key+'\')">Skip bonuses &amp; continue</button>'+
-    '</div>'+
-    '</div>'+
-    '</div>';
+function showDepNotice(key,deps){
+  var area=document.getElementById('content-output-area');
+  area.innerHTML='<div class="card solo"><div class="dep-notice"><strong>Bonuses make this more powerful</strong>Build the bonus stack first so the bonuses can be woven into this content.<div class="dep-btns"><button class="btn btn-sm" onclick="buildBonuses()">Build bonuses first</button><button class="btn btn-outline btn-sm" onclick="skipAndBuild(\''+key+'\')">Skip &amp; continue anyway</button></div></div></div>';
   area.scrollIntoView({behavior:'smooth'});
 }
 
@@ -428,360 +397,440 @@ function skipAndBuild(key){
   else if(key==='emails_non_buyers') buildEmails('non_buyers');
 }
 
-// ── Bonus builder ─────────────────────────────────────────────
-async function buildBonuses(){
-  showLoading('Building your bonus stack with cover images... This takes about 60 seconds.');
+// ── Lead Magnet ───────────────────────────────────────────────
+async function buildLeadMagnet(){
+  showLoading('Creating your lead magnet with cover image... This takes about 45 seconds.');
   try {
-    var res = await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',
+    var res=await fetch('/api/generate/lead-magnet',{method:'POST',credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, project_id:state.projectId})
+      body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})
     });
-    var data = await res.json();
+    var data=await res.json();
     if(data.success){
-      state.bonuses = data.bonuses;
-      renderBonuses(data.bonuses);
+      state.leadMagnet=data.lead_magnet;
+      renderLeadMagnet(data.lead_magnet);
       renderActionMenu();
-    } else {
-      showOutputError(data.message || 'Bonus generation failed.');
-    }
-  } catch(e){
-    showOutputError('Request failed: ' + e.message);
-  }
+    } else {showOutputError(data.message||'Lead magnet generation failed.');}
+  } catch(e){showOutputError('Request failed: '+e.message);}
 }
 
-function renderBonuses(bonuses){
-  var html = '<div class="card solo">'+
-    '<div class="section-label">Bonus stack <button class="regen-btn" onclick="buildBonuses()">Regenerate</button></div>';
-
-  bonuses.forEach(function(b){
-    var descId = 'bdesc' + b.number;
-    var contId = 'bcont' + b.number;
-
-    var coverHtml;
-    if(b.cover_image){
-      coverHtml = '<img src="'+b.cover_image+'" class="bonus-cover" alt="Bonus cover">';
-    } else {
-      coverHtml = '<div style="width:160px;height:160px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;text-align:center;padding:12px;margin-bottom:10px;">'+esc(b.title)+'</div>';
-    }
-
-    html += '<div class="bonus-card">';
-    html += '<div class="bonus-header">';
-    html += '<div class="bonus-num">'+b.number+'</div>';
-    html += '<div style="flex:1"><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>';
-    html += '<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; Download</button>';
-    html += '</div>';
-    html += coverHtml;
-    html += '<div class="output-label">Description <button class="copy-btn" onclick="copyText(\''+descId+'\',this)">Copy</button></div>';
-    html += '<div class="output-box" id="'+descId+'">'+esc(b.description)+'</div>';
-    html += '<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\''+contId+'\',this)">Copy</button></div>';
-    html += '<div class="output-box" id="'+contId+'">'+esc(b.full_content)+'</div>';
-    html += '</div>';
-  });
-
-  html += '<div style="display:flex;gap:8px;margin-top:4px">';
-  html += '<button class="btn btn-full" onclick="downloadAllBonuses()">&#8595; Download all 3 bonuses</button>';
-  html += '</div>';
-  html += '</div>';
-
-  document.getElementById('content-output-area').innerHTML = html;
+function renderLeadMagnet(lm){
+  var contentId='lm_content';
+  var html='<div class="card solo">';
+  html+='<div class="section-label">Lead magnet <button class="regen-btn" onclick="buildLeadMagnet()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="downloadLeadMagnet()">&#8595; Download</button></div>';
+  if(lm.cover_image){
+    html+='<img src="'+lm.cover_image+'" style="width:160px;height:160px;border-radius:8px;margin-bottom:12px;border:1px solid #EEEDFE;">';
+  } else {
+    html+='<div style="width:160px;height:160px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;text-align:center;padding:12px;margin-bottom:12px;">'+esc(lm.title)+'</div>';
+  }
+  html+='<div style="font-size:16px;font-weight:700;margin-bottom:4px">'+esc(lm.title)+'</div>';
+  html+='<div style="font-size:13px;color:#555;margin-bottom:14px">'+esc(lm.subtitle||'')+'</div>';
+  html+='<div class="output-label">Full content <button class="copy-btn" onclick="copyText(\''+contentId+'\',this)">Copy</button></div>';
+  html+='<div class="output-box" id="'+contentId+'">'+esc(lm.full_content)+'</div>';
+  html+='</div>';
+  document.getElementById('content-output-area').innerHTML=html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
 }
 
-async function downloadAllBonuses(){
-  if(!state.bonuses||!state.bonuses.length){ alert('No bonuses to download.'); return; }
-  var btn = event.target;
-  btn.disabled=true; btn.textContent='Preparing download...';
+async function downloadLeadMagnet(){
+  if(!state.leadMagnet){alert('No lead magnet to download.');return;}
   try {
-    var res = await fetch('/api/download/bonuses-all',{
-      method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({bonuses:state.bonuses, product_name:state.analysis?state.analysis.product_name:'your offer'})
-    });
+    var res=await fetch('/api/download/lead-magnet',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead_magnet:state.leadMagnet,product_name:state.analysis?state.analysis.product_name:'this offer'})});
     if(res.ok){
-      var blob = await res.blob();
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href=url;
-      a.download='Complete-Bonus-Stack.html';
-      a.click();
-      URL.revokeObjectURL(url);
-      btn.textContent='Downloaded!';
-      setTimeout(function(){ btn.disabled=false; btn.textContent='↓ Download all 3 bonuses'; },2000);
-    } else {
-      alert('Download failed. Please try again.');
-      btn.disabled=false; btn.textContent='↓ Download all 3 bonuses';
-    }
-  } catch(e){
-    alert('Download error: '+e.message);
-    btn.disabled=false; btn.textContent='↓ Download all 3 bonuses';
+      var blob=await res.blob();
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');a.href=url;a.download='Lead-Magnet.html';a.click();URL.revokeObjectURL(url);
+    } else {alert('Download failed.');}
+  } catch(e){alert('Download error: '+e.message);}
+}
+
+// ── Bonuses ───────────────────────────────────────────────────
+async function buildBonuses(){
+  showLoading('Building your bonus stack with cover images... This takes about 90 seconds.');
+  try {
+    var res=await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})
+    });
+    var data=await res.json();
+    if(data.success){
+      state.bonuses=data.bonuses;
+      state.stackSummary=data.stack_summary||'';
+      state.stackImage=data.stack_image||null;
+      renderBonuses(data.bonuses,data.stack_summary,data.stack_image);
+      renderActionMenu();
+    } else {showOutputError(data.message||'Bonus generation failed.');}
+  } catch(e){showOutputError('Request failed: '+e.message);}
+}
+
+function renderBonuses(bonuses,stackSummary,stackImage){
+  var html='<div class="card solo">';
+  html+='<div class="section-label">Bonus stack <button class="regen-btn" onclick="buildBonuses()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="downloadAllBonuses()">&#8595; Download all</button></div>';
+
+  if(stackImage){
+    html+='<img src="'+stackImage+'" class="stack-image" alt="Bonus stack">';
   }
+
+  bonuses.forEach(function(b){
+    var descId='bdesc'+b.number;
+    var contId='bcont'+b.number;
+    var coverHtml;
+    if(b.cover_image){
+      coverHtml='<img src="'+b.cover_image+'" style="width:150px;height:150px;border-radius:6px;margin-bottom:10px;border:1px solid #EEEDFE;">';
+    } else {
+      coverHtml='<div style="width:150px;height:150px;background:linear-gradient(135deg,#1A1A2E,#4F46B8);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:10px;margin-bottom:10px;">'+esc(b.title)+'</div>';
+    }
+    html+='<div class="bonus-card">';
+    html+='<div class="bonus-header">';
+    html+='<div class="bonus-num">'+b.number+'</div>';
+    html+='<div style="flex:1"><div class="bonus-title">'+esc(b.title)+'</div><div class="bonus-type">'+esc(b.type)+'</div></div>';
+    html+='<button class="btn btn-outline btn-sm" onclick="downloadBonus('+b.number+')">&#8595; Download</button>';
+    html+='</div>';
+    html+=coverHtml;
+    html+='<div class="output-label">Description <button class="copy-btn" onclick="copyText(\''+descId+'\',this)">Copy</button></div>';
+    html+='<div class="output-box" id="'+descId+'">'+esc(b.description)+'</div>';
+    html+='<div class="output-label" style="margin-top:8px">Full content <button class="copy-btn" onclick="copyText(\''+contId+'\',this)">Copy</button></div>';
+    html+='<div class="output-box" id="'+contId+'">'+esc(b.full_content)+'</div>';
+    html+='</div>';
+  });
+
+  if(stackSummary){
+    var ssId='stack_summary';
+    html+='<div style="margin-top:14px">';
+    html+='<div class="output-label">Bonus stack pitch copy <button class="copy-btn" onclick="copyText(\''+ssId+'\',this)">Copy</button></div>';
+    html+='<div class="output-box" id="'+ssId+'">'+esc(stackSummary)+'</div>';
+    html+='</div>';
+  }
+  html+='</div>';
+  document.getElementById('content-output-area').innerHTML=html;
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
 }
 
 async function downloadBonus(num){
-  var bonus = state.bonuses.find(function(b){ return b.number===num; });
-  if(!bonus){ alert('Bonus not found.'); return; }
+  var bonus=state.bonuses.find(function(b){return b.number===num;});
+  if(!bonus){alert('Bonus not found.');return;}
   try {
-    var res = await fetch('/api/download/bonus',{
-      method:'POST', credentials:'include',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({bonus:bonus, product_name:state.analysis?state.analysis.product_name:'this offer'})
-    });
-    if(res.ok){
-      var blob = await res.blob();
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href=url;
-      a.download='Bonus-'+num+'-'+((bonus.title||'bonus').replace(/[^a-z0-9]/gi,'_').slice(0,40))+'.html';
-      a.click();
-      URL.revokeObjectURL(url);
-    } else { alert('Download failed. Please try again.'); }
-  } catch(e){ alert('Download error: '+e.message); }
+    var res=await fetch('/api/download/bonus',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({bonus:bonus,product_name:state.analysis?state.analysis.product_name:'this offer'})});
+    if(res.ok){var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Bonus-'+num+'.html';a.click();URL.revokeObjectURL(url);}
+    else{alert('Download failed.');}
+  } catch(e){alert('Download error: '+e.message);}
 }
 
-// ── Opt-in builder ────────────────────────────────────────────
+async function downloadAllBonuses(){
+  if(!state.bonuses||!state.bonuses.length){alert('No bonuses to download.');return;}
+  var btn=event.target;btn.disabled=true;btn.textContent='Preparing...';
+  try {
+    var res=await fetch('/api/download/bonuses-all',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({bonuses:state.bonuses,product_name:state.analysis?state.analysis.product_name:'your offer'})});
+    if(res.ok){
+      var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Complete-Bonus-Stack.html';a.click();URL.revokeObjectURL(url);
+      btn.textContent='Downloaded!';setTimeout(function(){btn.disabled=false;btn.textContent='↓ Download all';},2000);
+    } else {alert('Download failed.');btn.disabled=false;btn.textContent='↓ Download all';}
+  } catch(e){alert('Error: '+e.message);btn.disabled=false;btn.textContent='↓ Download all';}
+}
+
+// ── Opt-in ────────────────────────────────────────────────────
 async function buildOptin(){
   showLoading('Writing your opt-in page with A/B headline variations...');
   try {
-    var res = await fetch('/api/generate/optin',{method:'POST',credentials:'include',
+    var res=await fetch('/api/generate/optin',{method:'POST',credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, project_id:state.projectId})
+      body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,lead_magnet:state.leadMagnet,project_id:state.projectId})
     });
-    var data = await res.json();
-    if(data.success){ renderOptin(data.content); }
-    else { showOutputError(data.message || 'Opt-in generation failed.'); }
-  } catch(e){ showOutputError('Request failed: ' + e.message); }
+    var data=await res.json();
+    if(data.success){renderOptin(data.content);}
+    else{showOutputError(data.message||'Opt-in generation failed.');}
+  } catch(e){showOutputError('Request failed: '+e.message);}
 }
 
 function renderOptin(c){
-  var haId = 'optin_ha';
-  var hbId = 'optin_hb';
-  var subId = 'optin_sub';
-  var html = '<div class="card solo">'+
-    '<div class="section-label">Opt-in page <button class="regen-btn" onclick="buildOptin()">Regenerate</button></div>'+
-    '<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note||'')+'</div>'+
-    '<div class="section-label" style="border:none;padding:0;margin-bottom:8px">A/B headline split test</div>'+
-    '<div class="ab-grid">'+
-    '<div class="ab-card"><div class="ab-label">Version A <button class="copy-btn" onclick="copyText(\''+haId+'\',this)">Copy</button></div><div class="ab-text" id="'+haId+'">'+esc(c.headline_a)+'</div></div>'+
-    '<div class="ab-card"><div class="ab-label">Version B <button class="copy-btn" onclick="copyText(\''+hbId+'\',this)">Copy</button></div><div class="ab-text" id="'+hbId+'">'+esc(c.headline_b)+'</div></div>'+
-    '</div>'+
-    '<div class="output-label">Subheadline <button class="copy-btn" onclick="copyText(\''+subId+'\',this)">Copy</button></div>'+
-    '<div class="output-box" id="'+subId+'">'+esc(c.subheadline)+'</div>'+
-    '<div class="output-label" style="margin-top:8px">CTA button text</div>'+
-    '<div class="output-box">'+esc(c.cta_button)+'</div>'+
-    '<div class="output-label" style="margin-top:8px">Form fields</div>'+
-    '<div class="output-box">'+esc((c.form_fields||[]).join(' + '))+'</div>'+
-    (c.split_test_tip?'<div class="alert alert-warning" style="margin-top:12px"><strong>Split test tip:</strong> '+esc(c.split_test_tip)+'</div>':'')+
-    '</div>';
-  document.getElementById('content-output-area').innerHTML = html;
+  var haId='optin_ha';var hbId='optin_hb';var subId='optin_sub';var bullId='optin_bullets';var ctaId='optin_cta';
+  var html='<div class="card solo">';
+  html+='<div class="section-label">Opt-in page <button class="regen-btn" onclick="buildOptin()">Regenerate</button></div>';
+  html+='<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note||'')+'</div>';
+  html+='<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">A/B Headline Split Test</div>';
+  html+='<div class="ab-grid">';
+  html+='<div class="ab-card"><div class="ab-label">Version A <button class="copy-btn" onclick="copyText(\''+haId+'\',this)">Copy</button></div><div class="ab-text" id="'+haId+'">'+esc(c.headline_a)+'</div></div>';
+  html+='<div class="ab-card"><div class="ab-label">Version B <button class="copy-btn" onclick="copyText(\''+hbId+'\',this)">Copy</button></div><div class="ab-text" id="'+hbId+'">'+esc(c.headline_b)+'</div></div>';
+  html+='</div>';
+  html+='<div class="output-label">Subheadline <button class="copy-btn" onclick="copyText(\''+subId+'\',this)">Copy</button></div>';
+  html+='<div class="output-box" id="'+subId+'">'+esc(c.subheadline)+'</div>';
+  if(c.bullets&&c.bullets.length){
+    html+='<div class="output-label" style="margin-top:8px">Bullet points <button class="copy-btn" onclick="copyText(\''+bullId+'\',this)">Copy</button></div>';
+    html+='<div class="output-box" id="'+bullId+'">'+esc(c.bullets.map(function(b,i){return '• '+b;}).join('\n'))+'</div>';
+  }
+  html+='<div class="output-label" style="margin-top:8px">CTA button <button class="copy-btn" onclick="copyText(\''+ctaId+'\',this)">Copy</button></div>';
+  html+='<div class="output-box" id="'+ctaId+'">'+esc(c.cta_button)+'</div>';
+  if(c.microcopy){html+='<div class="output-label" style="margin-top:8px">Microcopy (under button)</div><div class="output-box">'+esc(c.microcopy)+'</div>';}
+  html+='<div class="output-label" style="margin-top:8px">Form fields</div>';
+  html+='<div class="output-box">'+esc((c.form_fields||[]).join(' + '))+'</div>';
+  if(c.split_test_tip){html+='<div class="alert alert-warning" style="margin-top:12px"><strong>Split test tip:</strong> '+esc(c.split_test_tip)+'</div>';}
+  html+='</div>';
+  document.getElementById('content-output-area').innerHTML=html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
 }
 
-// ── Bridge builder ────────────────────────────────────────────
+// ── Bridge ────────────────────────────────────────────────────
 function buildBridge(){
-  var html = '<div class="card solo">'+
-    '<div class="section-label">Bridge page format</div>'+
-    '<p style="font-size:13px;color:#555;margin-bottom:12px">Choose the format for your bridge page:</p>'+
-    '<div style="display:flex;flex-direction:column;gap:8px">'+
-    '<div style="border:1px solid #EEEDFE;border-radius:8px;padding:12px;cursor:pointer" onclick="buildBridgeFormat(\'text\')">'+
-    '<div style="font-size:13px;font-weight:700">Text-only copy</div>'+
-    '<div style="font-size:12px;color:#888">Headline + story + bullets + bonus pitch + CTA</div></div>'+
-    '<div style="border:1px solid #EEEDFE;border-radius:8px;padding:12px;cursor:pointer" onclick="buildBridgeFormat(\'vsl\')">'+
-    '<div style="font-size:13px;font-weight:700">VSL video script + text copy</div>'+
-    '<div style="font-size:12px;color:#888">2-3 minute script + supporting text</div></div>'+
-    '<div style="border:1px solid #EEEDFE;border-radius:8px;padding:12px;cursor:pointer" onclick="buildBridgeFormat(\'short\')">'+
-    '<div style="font-size:13px;font-weight:700">Short punchy intro</div>'+
-    '<div style="font-size:12px;color:#888">3-5 sentences + strong CTA button</div></div>'+
-    '</div>'+
-    '</div>';
-  document.getElementById('content-output-area').innerHTML = html;
+  var html='<div class="card solo"><div class="section-label">Bridge page format</div>';
+  html+='<p style="font-size:13px;color:#555;margin-bottom:12px">Choose the format for your bridge page:</p>';
+  html+='<div style="display:flex;flex-direction:column;gap:8px">';
+  [['text','Text-only copy','Headline + story + bullets + bonus pitch + CTA (600+ words)'],
+   ['vsl','VSL video script + text copy','Full 3-4 min script + supporting page copy (800+ words)'],
+   ['short','Short punchy intro','4-6 tight sentences + strong CTA']
+  ].forEach(function(f){
+    html+='<div style="border:1px solid #EEEDFE;border-radius:8px;padding:12px;cursor:pointer;transition:all .15s" onmouseover="this.style.background=\'#FAFAFE\'" onmouseout="this.style.background=\'\'" onclick="buildBridgeFormat(\''+f[0]+'\')"><div style="font-size:13px;font-weight:700">'+f[1]+'</div><div style="font-size:12px;color:#888">'+f[2]+'</div></div>';
+  });
+  html+='</div></div>';
+  document.getElementById('content-output-area').innerHTML=html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
 }
 
 async function buildBridgeFormat(format){
   showLoading('Writing your bridge page...');
   try {
-    var res = await fetch('/api/generate/bridge',{method:'POST',credentials:'include',
+    var res=await fetch('/api/generate/bridge',{method:'POST',credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, format:format, bonuses:state.bonuses, project_id:state.projectId})
+      body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,format:format,bonuses:state.bonuses,stack_summary:state.stackSummary,lead_magnet:state.leadMagnet,project_id:state.projectId})
     });
-    var data = await res.json();
-    if(data.success){ renderBridge(data.content, format); }
-    else { showOutputError(data.message || 'Bridge generation failed.'); }
-  } catch(e){ showOutputError('Request failed: ' + e.message); }
+    var data=await res.json();
+    if(data.success){renderBridge(data.content,format);}
+    else{showOutputError(data.message||'Bridge generation failed.');}
+  } catch(e){showOutputError('Request failed: '+e.message);}
 }
 
-function renderBridge(c, format){
-  var bhId = 'bridge_headline';
-  var bcId = 'bridge_content';
-  var html = '<div class="card solo">'+
-    '<div class="section-label">Bridge page — '+format+' <button class="regen-btn" onclick="buildBridge()">Change format</button></div>'+
-    (c.above_fold_note?'<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note)+'</div>':'')+
-    '<div class="output-label">Headline <button class="copy-btn" onclick="copyText(\''+bhId+'\',this)">Copy</button></div>'+
-    '<div class="output-box" id="'+bhId+'">'+esc(c.headline)+'</div>'+
-    '<div class="output-label" style="margin-top:8px">Content <button class="copy-btn" onclick="copyText(\''+bcId+'\',this)">Copy</button></div>'+
-    '<div class="output-box" id="'+bcId+'">'+esc(c.content)+'</div>'+
-    '<div class="output-label" style="margin-top:8px">CTA button</div>'+
-    '<div class="output-box">'+esc(c.cta_text)+'</div>'+
-    '</div>';
-  document.getElementById('content-output-area').innerHTML = html;
+function renderBridge(c,format){
+  var bhId='bridge_h';var bcId='bridge_c';var ctaId='bridge_cta';
+  var html='<div class="card solo">';
+  html+='<div class="section-label">Bridge page — '+format+' <button class="regen-btn" onclick="buildBridge()">Change format</button></div>';
+  if(c.above_fold_note) html+='<div class="alert alert-info" style="margin-bottom:14px">'+esc(c.above_fold_note)+'</div>';
+  html+='<div class="output-label">Headline <button class="copy-btn" onclick="copyText(\''+bhId+'\',this)">Copy</button></div>';
+  html+='<div class="output-box" id="'+bhId+'">'+esc(c.headline)+'</div>';
+  if(c.subheadline){html+='<div class="output-label" style="margin-top:8px">Subheadline</div><div class="output-box">'+esc(c.subheadline)+'</div>';}
+  html+='<div class="output-label" style="margin-top:8px">Content <button class="copy-btn" onclick="copyText(\''+bcId+'\',this)">Copy</button></div>';
+  html+='<div class="output-box" id="'+bcId+'">'+esc(c.content)+'</div>';
+  html+='<div class="output-label" style="margin-top:8px">CTA button <button class="copy-btn" onclick="copyText(\''+ctaId+'\',this)">Copy</button></div>';
+  html+='<div class="output-box" id="'+ctaId+'">'+esc(c.cta_text)+'</div>';
+  if(c.bonus_claim_note){html+='<div class="output-label" style="margin-top:8px">Bonus claim note</div><div class="output-box">'+esc(c.bonus_claim_note)+'</div>';}
+  html+='</div>';
+  document.getElementById('content-output-area').innerHTML=html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
 }
 
-// ── Email builder ─────────────────────────────────────────────
+// ── Emails ────────────────────────────────────────────────────
 async function buildEmails(type){
-  showLoading('Writing your '+(type==='non_buyers'?'non-buyer':'buyer')+' email sequence with 3 subject line options per email...');
+  showLoading('Writing your '+(type==='non_buyers'?'non-buyer':'buyer')+' email sequence...');
   try {
-    var res = await fetch('/api/generate/emails',{method:'POST',credentials:'include',
+    var res=await fetch('/api/generate/emails',{method:'POST',credentials:'include',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({analysis:state.analysis, angle:state.selectedAngle, sequence_type:type, bonuses:state.bonuses, project_id:state.projectId})
+      body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,sequence_type:type,bonuses:state.bonuses,lead_magnet:state.leadMagnet,project_id:state.projectId})
     });
-    var data = await res.json();
-    if(data.success){ renderEmails(data.emails, type); }
-    else { showOutputError(data.message || 'Email generation failed.'); }
-  } catch(e){ showOutputError('Request failed: ' + e.message); }
+    var data=await res.json();
+    if(data.success){renderEmails(data.emails,type);}
+    else{showOutputError(data.message||'Email generation failed.');}
+  } catch(e){showOutputError('Request failed: '+e.message);}
 }
 
-function renderEmails(emails, type){
-  var title = type==='non_buyers'?'Non-buyer sequence — convert to sale':'Buyer sequence — onboard & ascend';
-  var html = '<div class="card solo">'+
-    '<div class="section-label">'+title+' <button class="regen-btn" onclick="buildEmails(\''+type+'\')">Regenerate</button></div>';
+function renderEmails(emails,type){
+  var title=type==='non_buyers'?'Non-buyer sequence — convert to sale':'Buyer sequence — onboard & ascend';
+  var html='<div class="card solo"><div class="section-label">'+title+' <button class="regen-btn" onclick="buildEmails(\''+type+'\')">Regenerate</button></div>';
   emails.forEach(function(e){
-    var bodyId = 'email_body_'+e.day;
-    html += '<div class="email-card">';
-    html += '<div class="email-day">Day '+e.day+'</div>';
-    html += '<div class="output-label">Subject line options (pick one)</div>';
-    html += '<div class="subject-options">';
+    var bodyId='email_body_'+type+'_'+e.day;
+    html+='<div class="email-card">';
+    html+='<div class="email-day">Day '+e.day+'</div>';
+    html+='<div class="output-label">Subject line options (pick one)</div>';
+    html+='<div class="subject-options">';
     (e.subject_lines||[]).forEach(function(s,i){
-      var sid = 'sub_'+type+'_'+e.day+'_'+i;
-      html += '<div class="subject-opt"><span id="'+sid+'">'+esc(s)+'</span>'+
-        '<button class="copy-btn" onclick="copyText(\''+sid+'\',this)">Copy</button></div>';
+      var sid='sub_'+type+'_'+e.day+'_'+i;
+      html+='<div class="subject-opt"><span id="'+sid+'">'+esc(s)+'</span><button class="copy-btn" onclick="copyText(\''+sid+'\',this)">Copy</button></div>';
     });
-    html += '</div>';
-    html += '<div class="output-label">Email body <button class="copy-btn" onclick="copyText(\''+bodyId+'\',this)">Copy</button></div>';
-    html += '<div class="output-box" id="'+bodyId+'">'+esc(e.body)+'</div>';
-    html += '</div>';
+    html+='</div>';
+    html+='<div class="output-label">Email body <button class="copy-btn" onclick="copyText(\''+bodyId+'\',this)">Copy</button></div>';
+    html+='<div class="output-box" id="'+bodyId+'">'+esc(e.body)+'</div>';
+    html+='</div>';
   });
-  html += '</div>';
-  document.getElementById('content-output-area').innerHTML = html;
+  html+='</div>';
+  document.getElementById('content-output-area').innerHTML=html;
   document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+}
+
+// ── Blueprint ─────────────────────────────────────────────────
+async function buildBlueprint(){
+  showLoading('Writing your funnel implementation blueprint...');
+  try {
+    var res=await fetch('/api/generate/blueprint',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,bonuses:state.bonuses,lead_magnet:state.leadMagnet,project_id:state.projectId})
+    });
+    var data=await res.json();
+    if(data.success){renderBlueprint(data.blueprint);}
+    else{showOutputError(data.message||'Blueprint generation failed.');}
+  } catch(e){showOutputError('Request failed: '+e.message);}
+}
+
+function renderBlueprint(bp){
+  var html='<div class="card solo">';
+  html+='<div class="section-label">'+esc(bp.title||'Copy-paste blueprint')+' <button class="regen-btn" onclick="buildBlueprint()">Regenerate</button><button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="downloadBlueprint()">&#8595; Download</button></div>';
+  (bp.sections||[]).forEach(function(s,i){
+    var secId='bp_sec_'+i;
+    html+='<div class="blueprint-section">';
+    html+='<div class="blueprint-heading">'+esc(s.heading)+'</div>';
+    html+='<div class="output-label" style="margin-bottom:4px"> <button class="copy-btn" onclick="copyText(\''+secId+'\',this)">Copy</button></div>';
+    html+='<div class="output-box" id="'+secId+'">'+esc(s.content)+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  document.getElementById('content-output-area').innerHTML=html;
+  document.getElementById('content-output-area').scrollIntoView({behavior:'smooth'});
+  // Store blueprint for download
+  state.blueprint=bp;
+}
+
+async function downloadBlueprint(){
+  if(!state.blueprint){alert('No blueprint to download.');return;}
+  try {
+    var res=await fetch('/api/download/blueprint',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({blueprint:state.blueprint,product_name:state.analysis?state.analysis.product_name:'this offer'})});
+    if(res.ok){var blob=await res.blob();var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Funnel-Blueprint.html';a.click();URL.revokeObjectURL(url);}
+    else{alert('Download failed.');}
+  } catch(e){alert('Error: '+e.message);}
 }
 
 // ── Full funnel ───────────────────────────────────────────────
 async function buildFullFunnel(){
-  showLoading('Building your complete funnel — bonuses, opt-in, bridge, and both email sequences. This takes 2-3 minutes...');
+  showLoading('Building your complete funnel — all pieces in order. This takes 3-5 minutes...');
+  var area=document.getElementById('content-output-area');
   try {
-    var bonusRes = await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})});
-    var bonusData = await bonusRes.json();
-    if(bonusData.success) state.bonuses = bonusData.bonuses;
+    // 1. Lead magnet
+    var lmRes=await fetch('/api/generate/lead-magnet',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})});
+    var lmData=await lmRes.json();
+    if(lmData.success) state.leadMagnet=lmData.lead_magnet;
 
-    var optinRes = await fetch('/api/generate/optin',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})});
-    var optinData = await optinRes.json();
+    // 2. Bonuses
+    var bRes=await fetch('/api/generate/bonuses',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,project_id:state.projectId})});
+    var bData=await bRes.json();
+    if(bData.success){state.bonuses=bData.bonuses;state.stackSummary=bData.stack_summary||'';state.stackImage=bData.stack_image||null;}
 
-    var bridgeRes = await fetch('/api/generate/bridge',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,format:'text',bonuses:state.bonuses,project_id:state.projectId})});
-    var bridgeData = await bridgeRes.json();
+    // 3. Opt-in
+    var oRes=await fetch('/api/generate/optin',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,lead_magnet:state.leadMagnet,project_id:state.projectId})});
+    var oData=await oRes.json();
 
-    var nbRes = await fetch('/api/generate/emails',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,sequence_type:'non_buyers',bonuses:state.bonuses,project_id:state.projectId})});
-    var nbData = await nbRes.json();
+    // 4. Bridge
+    var brRes=await fetch('/api/generate/bridge',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,format:'vsl',bonuses:state.bonuses,stack_summary:state.stackSummary,lead_magnet:state.leadMagnet,project_id:state.projectId})});
+    var brData=await brRes.json();
 
-    var bRes = await fetch('/api/generate/emails',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,sequence_type:'buyers',bonuses:state.bonuses,project_id:state.projectId})});
-    var bData = await bRes.json();
+    // 5. Non-buyer emails
+    var nbRes=await fetch('/api/generate/emails',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,sequence_type:'non_buyers',bonuses:state.bonuses,lead_magnet:state.leadMagnet,project_id:state.projectId})});
+    var nbData=await nbRes.json();
 
-    var area = document.getElementById('content-output-area');
-    area.innerHTML = '<div class="alert alert-success card solo">Full funnel built! Scroll down to see each section.</div>';
-    if(bonusData.success) renderBonuses(bonusData.bonuses);
-    if(optinData.success) area.insertAdjacentHTML('beforeend', getOptinHtml(optinData.content));
-    if(bridgeData.success) area.insertAdjacentHTML('beforeend', getBridgeHtml(bridgeData.content,'text'));
-    if(nbData.success) area.insertAdjacentHTML('beforeend', getEmailsHtml(nbData.emails,'non_buyers'));
-    if(bData.success) area.insertAdjacentHTML('beforeend', getEmailsHtml(bData.emails,'buyers'));
+    // 6. Buyer emails
+    var byRes=await fetch('/api/generate/emails',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,sequence_type:'buyers',bonuses:state.bonuses,lead_magnet:state.leadMagnet,project_id:state.projectId})});
+    var byData=await byRes.json();
+
+    // 7. Blueprint
+    var bpRes=await fetch('/api/generate/blueprint',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({analysis:state.analysis,angle:state.selectedAngle,bonuses:state.bonuses,lead_magnet:state.leadMagnet,project_id:state.projectId})});
+    var bpData=await bpRes.json();
+    if(bpData.success) state.blueprint=bpData.blueprint;
+
+    area.innerHTML='<div class="alert alert-success card solo" style="margin-bottom:14px">&#10003; Full funnel built! Everything is below in order.</div>';
+    if(lmData.success) renderLeadMagnet(lmData.lead_magnet);
+    if(bData.success) renderBonuses(bData.bonuses,bData.stack_summary,bData.stack_image);
+    if(oData.success) renderOptinInline(oData.content,area);
+    if(brData.success) renderBridgeInline(brData.content,'vsl',area);
+    if(nbData.success) renderEmailsInline(nbData.emails,'non_buyers',area);
+    if(byData.success) renderEmailsInline(byData.emails,'buyers',area);
+    if(bpData.success) renderBlueprintInline(bpData.blueprint,area);
     renderActionMenu();
-    area.scrollIntoView({behavior:'smooth'});
-  } catch(e){ showOutputError('Full funnel failed: ' + e.message); }
+  } catch(e){showOutputError('Full funnel failed: '+e.message);}
 }
 
-function getOptinHtml(c){
-  return '<div class="card solo" style="margin-top:14px">'+
-    '<div class="section-label">Opt-in page</div>'+
-    '<div class="ab-grid">'+
-    '<div class="ab-card"><div class="ab-label">Version A</div><div class="ab-text">'+esc(c.headline_a)+'</div></div>'+
-    '<div class="ab-card"><div class="ab-label">Version B</div><div class="ab-text">'+esc(c.headline_b)+'</div></div>'+
-    '</div>'+
+function renderOptinInline(c,area){
+  var d=document.createElement('div');d.className='card solo';d.style.marginTop='14px';
+  d.innerHTML='<div class="section-label">Opt-in page</div>'+
+    '<div class="ab-grid"><div class="ab-card"><div class="ab-label">Version A</div><div class="ab-text">'+esc(c.headline_a)+'</div></div>'+
+    '<div class="ab-card"><div class="ab-label">Version B</div><div class="ab-text">'+esc(c.headline_b)+'</div></div></div>'+
     '<div class="output-box">'+esc(c.subheadline)+'</div>'+
-    '</div>';
+    (c.bullets&&c.bullets.length?'<div class="output-box" style="margin-top:8px">'+esc(c.bullets.map(function(b){return '• '+b;}).join('\n'))+'</div>':'')+
+    '<div class="output-box" style="margin-top:8px">'+esc(c.cta_button)+'</div>';
+  area.appendChild(d);
 }
 
-function getBridgeHtml(c,format){
-  return '<div class="card solo" style="margin-top:14px">'+
-    '<div class="section-label">Bridge page</div>'+
-    '<div class="output-box">'+esc(c.headline)+'\n\n'+esc(c.content)+'</div>'+
-    '</div>';
+function renderBridgeInline(c,format,area){
+  var d=document.createElement('div');d.className='card solo';d.style.marginTop='14px';
+  d.innerHTML='<div class="section-label">Bridge page</div>'+
+    '<div class="output-box"><strong>'+esc(c.headline)+'</strong>\n\n'+esc(c.content)+'</div>';
+  area.appendChild(d);
 }
 
-function getEmailsHtml(emails,type){
-  return '<div class="card solo" style="margin-top:14px">'+
-    '<div class="section-label">'+(type==='non_buyers'?'Non-buyer sequence':'Buyer sequence')+'</div>'+
-    emails.map(function(e){
-      return '<div class="email-card">'+
-        '<div class="email-day">Day '+e.day+'</div>'+
-        '<div style="font-size:12px;color:#888;margin-bottom:6px">Subject: '+esc((e.subject_lines||[])[0]||'')+'</div>'+
-        '<div class="output-box">'+esc(e.body)+'</div>'+
-        '</div>';
-    }).join('')+'</div>';
+function renderEmailsInline(emails,type,area){
+  var d=document.createElement('div');d.className='card solo';d.style.marginTop='14px';
+  var title=type==='non_buyers'?'Non-buyer sequence':'Buyer sequence';
+  var inner='<div class="section-label">'+title+'</div>';
+  emails.forEach(function(e){
+    inner+='<div class="email-card"><div class="email-day">Day '+e.day+'</div>'+
+      '<div style="font-size:12px;color:#888;margin-bottom:6px">Subject: '+esc((e.subject_lines||[])[0]||'')+'</div>'+
+      '<div class="output-box">'+esc(e.body)+'</div></div>';
+  });
+  d.innerHTML=inner;area.appendChild(d);
+}
+
+function renderBlueprintInline(bp,area){
+  var d=document.createElement('div');d.className='card solo';d.style.marginTop='14px';
+  var inner='<div class="section-label">'+esc(bp.title||'Blueprint')+'</div>';
+  (bp.sections||[]).slice(0,3).forEach(function(s){
+    inner+='<div class="blueprint-section"><div class="blueprint-heading">'+esc(s.heading)+'</div><div class="output-box">'+esc(s.content)+'</div></div>';
+  });
+  if((bp.sections||[]).length>3) inner+='<div style="font-size:12px;color:#888;padding:8px 0">+ '+(bp.sections.length-3)+' more sections — use Copy-paste blueprint to see all</div>';
+  d.innerHTML=inner;area.appendChild(d);
 }
 
 // ── Projects ──────────────────────────────────────────────────
 async function loadProjects(){
   document.getElementById('projects-container').innerHTML='<div class="loading-state"><div class="spin"></div><br>Loading...</div>';
   try {
-    var res = await fetch('/api/projects',{credentials:'include'});
-    var data = await res.json();
+    var res=await fetch('/api/projects',{credentials:'include'});
+    var data=await res.json();
     if(!data.success||data.projects.length===0){
       document.getElementById('proj-count').textContent='';
-      document.getElementById('projects-container').innerHTML='<div style="color:#888;font-size:13px;padding:16px 0">No projects yet. Analyze a URL to start your first one.</div>';
+      document.getElementById('projects-container').innerHTML='<div style="color:#888;font-size:13px;padding:16px 0">No projects yet. Analyze a URL to start.</div>';
       return;
     }
     document.getElementById('proj-count').textContent=data.projects.length+' project'+(data.projects.length===1?'':'s');
     document.getElementById('projects-container').innerHTML='<div class="projects-list">'+
       data.projects.map(function(p){
         return '<div class="project-row" onclick="loadProject(\''+p.id+'\')">'+
-          '<div style="flex:1">'+
-          '<div class="project-name">'+esc(p.name)+'</div>'+
-          '<div class="project-meta">'+esc(p.channel.replace('_',' '))+' &bull; '+new Date(p.created_at).toLocaleDateString()+'</div>'+
-          '<div style="margin-top:3px"><span class="project-badge">'+esc(p.angle||'')+'</span></div>'+
-          '</div>'+
+          '<div style="flex:1"><div class="project-name">'+esc(p.name)+'</div>'+
+          '<div class="project-meta">'+esc((p.channel||'').replace(/_/g,' '))+' &bull; '+new Date(p.created_at).toLocaleDateString()+'</div>'+
+          '<div style="margin-top:3px"><span class="project-badge">'+esc(p.angle||'')+'</span></div></div>'+
           '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();deleteProject(\''+p.id+'\')">Delete</button>'+
           '</div>';
-      }).join('')+
-      '</div>';
-  } catch(e){
-    document.getElementById('projects-container').innerHTML='<div class="alert alert-error">Failed to load projects.</div>';
-  }
+      }).join('')+'</div>';
+  } catch(e){document.getElementById('projects-container').innerHTML='<div class="alert alert-error">Failed to load projects.</div>';}
 }
 
 async function loadProject(id){
   showMainTab('workspace');
   try {
-    var res = await fetch('/api/projects/'+id,{credentials:'include'});
-    var data = await res.json();
+    var res=await fetch('/api/projects/'+id,{credentials:'include'});
+    var data=await res.json();
     if(!data.success) return;
-    var p = data.project;
-    state.analysis = JSON.parse(p.analysis||'{}');
-    state.selectedAngle = p.angle;
-    state.selectedChannel = p.channel;
-    state.projectId = p.id;
-    state.bonuses = (data.content.bonus_stack)||[];
-    document.getElementById('url-input').value = p.url||'';
+    var p=data.project;
+    state.analysis=JSON.parse(p.analysis||'{}');
+    state.selectedAngle=p.angle;
+    state.selectedChannel=p.channel;
+    state.projectId=p.id;
+    var bs=data.content.bonus_stack;
+    if(bs&&bs.bonuses){state.bonuses=bs.bonuses;state.stackSummary=bs.stack_summary||'';state.stackImage=bs.stack_image||null;}
+    state.leadMagnet=data.content.lead_magnet||null;
+    document.getElementById('url-input').value=p.url||'';
     renderSummary(state.analysis);
     document.getElementById('summary-card').style.display='block';
     document.getElementById('channel-card').style.display='block';
     renderChannels();
     document.getElementById('angle-card').style.display='none';
     document.getElementById('creation-card').style.display='block';
-    document.getElementById('active-angle-badge').textContent = state.selectedAngle;
+    document.getElementById('active-angle-badge').textContent=state.selectedAngle;
     renderActionMenu();
-    document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-success">Project loaded. Choose what to create from the menu above.</div></div>';
-  } catch(e){
-    showOutputError('Failed to load project.');
-  }
+    document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-success">Project loaded. Choose what to create.</div></div>';
+  } catch(e){showOutputError('Failed to load project.');}
 }
 
 async function deleteProject(id){
@@ -797,28 +846,22 @@ function showLoading(msg){
 }
 
 function showOutputError(msg){
-  document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-error">'+esc(msg||'Something went wrong. Please try again.')+'</div></div>';
+  document.getElementById('content-output-area').innerHTML='<div class="card solo"><div class="alert alert-error">'+esc(msg||'Something went wrong.')+'</div></div>';
 }
 
-function showAlert(id,msg,cls){
-  var el=document.getElementById(id);
-  el.textContent=msg; el.className='alert '+cls; el.style.display='block';
-}
-
-function hideAlert(id){ document.getElementById(id).style.display='none'; }
+function showAlert(id,msg,cls){var el=document.getElementById(id);el.textContent=msg;el.className='alert '+cls;el.style.display='block';}
+function hideAlert(id){document.getElementById(id).style.display='none';}
 
 function copyText(id,btn){
-  var el=document.getElementById(id);
-  if(!el) return;
+  var el=document.getElementById(id);if(!el) return;
   navigator.clipboard.writeText(el.textContent).then(function(){
-    btn.textContent='Copied!';
-    setTimeout(function(){ btn.textContent='Copy'; },1500);
+    btn.textContent='Copied!';setTimeout(function(){btn.textContent='Copy';},1500);
   });
 }
 
 function esc(s){
   if(s===null||s===undefined) return '';
-  var d=document.createElement('div'); d.textContent=String(s); return d.innerHTML;
+  var d=document.createElement('div');d.textContent=String(s);return d.innerHTML;
 }
 
 init();
