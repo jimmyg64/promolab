@@ -1,66 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PromoLab — Paste a URL. Get promo content. Start earning.</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#F0F0F8;color:#1A1A2E;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.card{background:#fff;border-radius:12px;padding:48px 40px;max-width:540px;width:100%;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.07)}
-.eyebrow{font-size:12px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;margin-bottom:12px}
-.rocket{font-size:36px;margin-bottom:12px}
-h1{font-size:28px;font-weight:700;margin-bottom:12px;color:#1A1A2E}
-.tagline{font-size:16px;color:#4F46B8;font-weight:700;margin-bottom:8px}
-.sub{font-size:14px;color:#666;line-height:1.7;margin-bottom:8px}
-.steps{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:8px;padding:16px 20px;margin:20px 0;text-align:left}
-.step{font-size:13px;color:#555;line-height:1.7;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px}
-.step:last-child{margin-bottom:0}
-.step-num{background:#4F46B8;color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
-.channels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
-.channel{background:#F8F8FF;border:1px solid #EEEDFE;border-radius:8px;padding:10px;text-align:center;font-size:12px;color:#4F46B8;font-weight:700}
-.buttons{display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap}
-.btn{background:#4F46B8;color:#fff;text-decoration:none;padding:13px 28px;border-radius:8px;font-size:14px;font-weight:700;transition:background .15s;display:inline-block}
-.btn:hover{background:#3C3489}
-.btn-secondary{background:#fff;color:#4F46B8;border:2px solid #4F46B8}
-.btn-secondary:hover{background:#EEEDFE}
-.footer{margin-top:24px;font-size:12px;color:#999;text-align:center}
-.footer a{color:#4F46B8;text-decoration:none;font-weight:700;margin:0 6px}
-</style>
-</head>
-<body>
-<div class="card">
-  <p class="eyebrow">PromoLab</p>
-  <div class="rocket">🚀</div>
-  <h1>Affiliate promo content — in seconds</h1>
-  <p class="tagline">Paste a URL. Get promo content. Start earning.</p>
-  <p class="sub">Stop staring at a blank screen. PromoLab reads any sales page and instantly generates ready-to-use promo content for your channel.</p>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromoLab AI</title>
+  <style>
+    :root {
+      --ink: #080d24;
+      --muted: #5f6880;
+      --line: #dfe3f4;
+      --panel: #ffffff;
+      --soft: #f3f5ff;
+      --accent: #5146c6;
+      --accent-dark: #352c99;
+      --green: #d8fbe7;
+      --green-text: #076238;
+      --orange: #fff0dc;
+      --orange-text: #8c4b00;
+      --shadow: 0 18px 45px rgba(18, 24, 54, 0.12);
+    }
 
-  <div class="steps">
-    <div class="step"><div class="step-num">1</div><span>Paste any affiliate sales page URL</span></div>
-    <div class="step"><div class="step-num">2</div><span>Choose your promo channel</span></div>
-    <div class="step"><div class="step-num">3</div><span>Get ready-to-use content instantly</span></div>
-  </div>
+    * {
+      box-sizing: border-box;
+    }
 
-  <div class="channels">
-    <div class="channel">Facebook posts</div>
-    <div class="channel">Solo ads funnel</div>
-    <div class="channel">Email sequence</div>
-    <div class="channel">Launchjacking kit</div>
-  </div>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #eef1fb;
+      color: var(--ink);
+    }
 
-  <p class="sub" style="font-size:13px;color:#888">Already have an account? Log in below. New users sign up after purchase.</p>
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-  <div class="buttons">
-    <a href="/login.html" class="btn">Log in</a>
-    <a href="/signup.html" class="btn btn-secondary">Sign up</a>
-  </div>
-</div>
+    .topbar {
+      background: var(--ink);
+      color: #fff;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 34px;
+      gap: 18px;
+    }
 
-<div class="footer">
-  <a href="/privacy.html">Privacy Policy</a>
-  <a href="/terms.html">Terms of Service</a>
-  <p style="margin-top:8px">&copy; 2026 PromoLab &bull; Jimmy Griffith, JGAffiliate</p>
-</div>
-</body>
-</html>
+    .brand {
+      font-size: 27px;
+      font-weight: 900;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .brand span {
+      color: #887cff;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav a {
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .nav .primary {
+      background: #fff;
+      color: var(--accent-dark);
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 34px 22px 54px;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      min-height: 330px;
+    }
+
+    .hero-copy {
+      padding: 42px;
