@@ -53,7 +53,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
 </div>
 <div class="top">
   <div class="brand">Promo<span>Lab</span> 2.0</div>
-  <div class="user"><span id="user-email">Loading...</span><button class="btn secondary" onclick="logout()">Logout</button></div>
+  <div class="user"><span id="user-email">Loading...</span><button class="btn secondary" onclick="location.href='/dashboard.html'">Dashboard</button><button class="btn secondary" onclick="logout()">Logout</button></div>
 </div>
 
 <div class="wrap">
@@ -182,7 +182,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
         <p class="sub">Your Solo Ads funnel assets are complete. Review the checklist below, download anything you still need, or return to the dashboard to start another project.</p>
         <div id="review-box"></div>
         <div class="actions">
-          <button class="btn" onclick="go(0)">Back to Dashboard</button>
+          <button class="btn" onclick="location.href='/dashboard.html'">Back to Dashboard</button>
           <button class="btn secondary" onclick="window.print()">Print Review</button>
         </div>
       </section>
@@ -221,10 +221,11 @@ var steps = [
   'Review'
 ];
 
-function init(){
+async function init(){
   renderSteps();
-  me();
-  loadUsage();
+  await me();
+  await loadUsage();
+  await loadProjectFromUrl();
 }
 
 async function me(){
@@ -591,6 +592,56 @@ function renderReview(){
       return '<div class="card"><h3>'+(x[1]?'✓ ':'○ ')+esc(x[0])+'</h3><p>'+(x[1]?'Completed':'Not completed or skipped')+'</p></div>';
     }).join('')+'</div>'+
     '<div class="alert ok" style="margin-top:16px">Your funnel build is complete. You can return to the dashboard or continue downloading files from the earlier steps.</div>';
+}
+
+async function loadProjectFromUrl(){
+  var params = new URLSearchParams(window.location.search);
+  var projectId = params.get('project');
+  if(!projectId) return;
+  try{
+    loading('Loading saved project...');
+    var res = await fetch('/api/projects/' + encodeURIComponent(projectId), { credentials:'include' });
+    var data = await res.json();
+    if(!data.success) throw new Error(data.message || 'Project could not be loaded.');
+    var project = data.project || {};
+    var content = data.content || {};
+    state.project = project;
+    try { state.analysis = typeof project.analysis === 'string' ? JSON.parse(project.analysis || '{}') : project.analysis; }
+    catch(e){ state.analysis = {}; }
+    state.angle = project.angle || (state.analysis && state.analysis.recommended_angle) || '';
+    state.bonusPlan = content.bonus_plan || null;
+    state.bonuses = [content.bonus_1, content.bonus_2, content.bonus_3].filter(Boolean);
+    state.stack = content.bonus_stack || null;
+    state.leadMagnet = content.lead_magnet || null;
+    state.optin = content.optin_page || null;
+    state.bridge = content.bridge_page || null;
+    state.emails = content.emails || null;
+
+    if(document.getElementById('url')) document.getElementById('url').value = project.url || '';
+    if(state.analysis) renderAnalysis();
+    if(state.bonusPlan) renderBonusPlan();
+    renderBonusTabs();
+    renderStack();
+    renderLead();
+    renderOptin();
+    renderBridge();
+    renderEmails();
+    renderReview();
+
+    var nextStep = 1;
+    if(state.emails) nextStep = 9;
+    else if(state.bridge) nextStep = 8;
+    else if(state.optin) nextStep = 7;
+    else if(state.leadMagnet) nextStep = 6;
+    else if(state.stack) nextStep = 5;
+    else if(state.bonuses.length) nextStep = 3;
+    else if(state.bonusPlan) nextStep = 2;
+    go(nextStep);
+    showStatus('Saved project loaded. You can review, continue, or download assets again.', 'ok');
+  }catch(e){
+    console.error(e);
+    showStatus(e.message || 'Saved project could not be loaded.', 'error');
+  }
 }
 
 function downloadCurrentBonus(){
