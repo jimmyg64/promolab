@@ -157,6 +157,7 @@ async function loadProjects(){
         '</div>'+
         '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'+
           '<a class="btn" href="/app.html?project='+encodeURIComponent(p.id)+'">Open Project</a>'+
+          '<button class="btn light" onclick="event.preventDefault();downloadProjectAssets(\''+escAttr(p.id)+'\')">Quick Downloads</button>'+
           '<button class="btn danger" onclick="deleteProject(\''+escAttr(p.id)+'\')">Delete</button>'+
         '</div>'+
       '</article>';
@@ -178,12 +179,208 @@ async function deleteProject(id){
   loadProjects();
 }
 
+async function downloadProjectAssets(id){
+  try{
+    showStatus('Preparing downloads...', 'info');
+    const res = await fetch('/api/projects/' + encodeURIComponent(id), { credentials:'include' });
+    const data = await res.json();
+    if(!data.success) throw new Error(data.message || 'Project could not be loaded.');
+    const project = data.project || {};
+    const content = normalizeContent(data.content || {});
+    const downloads = [];
+
+    if(content.stack) downloads.push(['Bonus Stack PNG', function(){ downloadImagePng(getStackImage(content), safeName(project.name || 'Bonus-Stack') + '-Bonus-Stack.png'); }]);
+    content.bonuses.forEach(function(b, i){
+      if(b && b.full_content) downloads.push(['Bonus ' + (b.number || i + 1) + ' DOCX', function(){ downloadTextDoc('Bonus-' + (b.number || i + 1) + '.docx', b.title || 'Buyer Bonus', b.tagline || b.type || '', 'Exclusive Buyer Bonus #' + (b.number || i + 1), b.full_content); }]);
+      if(b) downloads.push(['Bonus ' + (b.number || i + 1) + ' PNG', function(){ downloadImagePng(getBonusImage(b, i), 'Bonus-' + (b.number || i + 1) + '-Cover.png'); }]);
+    });
+    if(content.lead && content.lead.full_content) downloads.push(['Lead Magnet DOCX', function(){ downloadTextDoc('Lead-Magnet.docx', content.lead.title || 'Lead Magnet', content.lead.subtitle || '', 'Free Guide', content.lead.full_content); }]);
+    if(content.lead) downloads.push(['Lead Magnet PNG', function(){ downloadImagePng(getLeadImage(content), 'Lead-Magnet-Cover.png'); }]);
+    if(content.optin) downloads.push(['Opt-In HTML', function(){ downloadHtml('Opt-In-Page.html', optinHtml(content)); }]);
+    if(content.bridge) downloads.push(['Bridge HTML', function(){ downloadHtml('Bridge-Page.html', bridgeHtml(content)); }]);
+    if(content.emails && content.emails.non_buyers) downloads.push(['Non-Buyer Emails DOCX', function(){ downloadTextDoc('EmailSequence-NonBuyers.docx', 'Non-Buyer Email Sequence', '', 'Email Sequence', emailsText(content.emails, 'non_buyers')); }]);
+    if(content.emails && content.emails.buyers) downloads.push(['Buyer Emails DOCX', function(){ downloadTextDoc('EmailSequence-Buyers.docx', 'Buyer Email Sequence', '', 'Email Sequence', emailsText(content.emails, 'buyers')); }]);
+
+    if(!downloads.length){
+      showStatus('This project does not have downloadable assets yet. Open the project and generate assets first.', 'error');
+      return;
+    }
+
+    const names = downloads.map(function(x){ return x[0]; }).join('\n');
+    if(!confirm('This will download the saved assets that are ready:\n\n' + names + '\n\nContinue?')) {
+      showStatus('', 'info');
+      return;
+    }
+    downloads.forEach(function(item, index){
+      setTimeout(item[1], index * 500);
+    });
+    showStatus('Downloads started. Your browser may ask you to allow multiple downloads.', 'ok');
+  }catch(e){
+    showStatus(e.message || 'Downloads could not be prepared.', 'error');
+  }
+}
+
+function normalizeContent(content){
+  const stack = content.bonus_stack || null;
+  const bonuses = [content.bonus_1, content.bonus_2, content.bonus_3].filter(Boolean);
+  if(stack && stack.bonuses && !bonuses.length) stack.bonuses.forEach(function(b){ bonuses.push(b); });
+  return {
+    stack: stack,
+    bonuses: bonuses,
+    lead: content.lead_magnet || null,
+    optin: content.optin_page || null,
+    bridge: content.bridge_page || null,
+    emails: content.emails || null
+  };
+}
+
 function soon(){
   showStatus('This builder is coming next. Solo Ads is live now.', 'info');
 }
 
 function showStatus(msg,type){
   document.getElementById('status').innerHTML = msg ? '<div class="alert '+(type || 'info')+'">'+esc(msg)+'</div>' : '';
+}
+
+function optinHtml(content){
+  const o = content.optin || {};
+  const cover = content.lead ? '<img class="cover" src="'+getLeadImage(content)+'" alt="Lead magnet cover">' : '';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opt-In Page</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#080b18;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}.page{max-width:680px;text-align:center}.eyebrow{display:inline-block;color:#f8c75a;border:1px solid rgba(248,199,90,.45);border-radius:99px;padding:7px 14px;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px}h1{font-size:clamp(30px,6vw,54px);line-height:1.04;margin:0 0 16px;font-weight:900}.sub{color:#c7d2fe;font-size:19px;line-height:1.5;margin:0 auto 22px}.cover{width:210px;max-width:70%;border-radius:10px;box-shadow:0 18px 45px rgba(0,0,0,.45);margin:4px auto 22px}.bullets{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:18px;text-align:left;margin:0 0 22px}.bullet{margin:9px 0;color:#e5e7eb;font-size:15px;line-height:1.45}.form input{display:block;width:100%;padding:15px 16px;margin:10px 0;border-radius:9px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px}.cta{width:100%;border:0;border-radius:10px;background:#ff5a1f;color:#fff;font-weight:900;font-size:18px;padding:17px;cursor:pointer}.micro{color:#94a3b8;font-size:12px;margin-top:12px}</style></head><body><main class="page"><div class="eyebrow">Free Instant Access</div><h1>'+esc(o.headline_a || o.headline || '')+'</h1><p class="sub">'+esc(o.subheadline || '')+'</p>'+cover+'<div class="bullets">'+(o.below_fold_bullets||[]).map(function(b){return '<div class="bullet">✓ '+esc(b)+'</div>';}).join('')+'</div><div class="form"><input placeholder="First Name"><input placeholder="Email Address"><button class="cta">'+esc(o.cta_button || 'Get Instant Access')+'</button><p class="micro">'+esc(o.privacy_statement||o.trust_element||'Your email is safe. Unsubscribe anytime.')+'</p></div></main></body></html>';
+}
+
+function bridgeHtml(content){
+  const b = content.bridge || {};
+  const stack = content.stack ? '<img class="stack" src="'+getStackImage(content)+'" alt="Bonus stack">' : '';
+  const bonusList = content.bonuses.map(function(x){ return '<li><strong>'+esc(x.title)+'</strong><br><span>'+esc(x.description || x.tagline || '')+'</span></li>'; }).join('');
+  const vsl = b.video_script && String(b.video_script).trim() ? '<section class="video"><div class="play">▶</div><h2>Place Your VSL Here</h2><p>Embed your 3-5 minute video in this section. Keep autoplay off unless your traffic source allows it.</p></section><section class="script"><h2>VSL Script</h2><div>'+esc(b.video_script||'')+'</div></section>' : '';
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bridge Page</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f2f3fb;color:#101325}.hero{background:#090d1d;color:#fff;text-align:center;padding:56px 22px}.hero h1{font-size:clamp(28px,5vw,48px);line-height:1.08;margin:0 auto 14px;max-width:820px}.hero p{color:#c7d2fe;font-size:18px;max-width:680px;margin:0 auto}.wrap{max-width:760px;margin:0 auto;padding:34px 22px}.copy{white-space:pre-wrap;font-size:17px;line-height:1.75}.video{background:#0b1020;color:#fff;border-radius:16px;padding:42px 24px;text-align:center;margin:0 0 28px;box-shadow:0 8px 30px rgba(0,0,0,.18)}.play{width:72px;height:72px;border-radius:50%;background:#ff5a1f;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px}.video p{color:#c7d2fe}.script{background:#fff;border-radius:16px;padding:22px;margin:0 0 28px;white-space:pre-wrap;line-height:1.7}.bonus{background:#fff;border-radius:16px;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,.08);margin:28px 0}.stack{width:100%;border-radius:12px;background:#07111f;margin-bottom:18px}li{margin:14px 0;line-height:1.45}li span{color:#4b5563}.cta{display:block;text-align:center;background:#ff5a1f;color:#fff;text-decoration:none;font-size:18px;font-weight:900;border-radius:10px;padding:18px;margin:28px 0 10px}.note{text-align:center;color:#6b7280;font-size:13px}</style></head><body><section class="hero"><h1>'+esc(b.headline || '')+'</h1><p>'+esc(b.subheadline||'')+'</p></section><main class="wrap">'+vsl+'<div class="copy">'+esc(b.confirmation_section||'')+'\n\n'+esc(b.bridge_content||'')+'</div><section class="bonus"><h2>Your Exclusive Buyer Bonuses</h2>'+stack+'<ul>'+bonusList+'</ul></section><a class="cta" href="[YourAffiliateLink]">'+esc(b.cta_text||'Take A Look At This')+'</a><p class="note">'+esc(b.bonus_claim_note||'')+'</p></main></body></html>';
+}
+
+function emailsText(emails, type){
+  const arr = emails && emails[type] ? emails[type] : [];
+  return arr.map(function(e){
+    return 'Day '+(e.day || '')+' - '+(e.purpose||'')+'\nSubject lines:\n1. '+((e.subject_lines||[])[0] || '')+'\n2. '+((e.subject_lines||[])[1] || '')+'\n3. '+((e.subject_lines||[])[2] || '')+'\n\n'+(e.body||'');
+  }).join('\n\n-----------------------------\n\n');
+}
+
+function downloadHtml(filename, html){
+  const blob = new Blob([html], { type:'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadTextDoc(filename,title,subtitle,type,content){
+  if(!content) return;
+  const res = await fetch('/api/download/docx', { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ filename:filename, title:title, subtitle:subtitle, type:type, content:content }) });
+  if(!res.ok){ showStatus('One of the document downloads failed.', 'error'); return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadImagePng(dataUrl, filename){
+  if(!dataUrl) return;
+  if(dataUrl.indexOf('data:image/png') === 0){
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename || 'PromoLab-Image.png';
+    a.click();
+    return;
+  }
+  const img = new Image();
+  img.onload = function(){
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || 1400;
+    canvas.height = img.naturalHeight || 900;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#07111f';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0);
+    const png = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = png;
+    a.download = filename || 'PromoLab-Image.png';
+    a.click();
+  };
+  img.src = dataUrl;
+}
+
+function usableImage(value){
+  const text = String(value || '').trim();
+  return text.indexOf('data:image/') === 0 || text.indexOf('https://') === 0 || text.indexOf('http://') === 0;
+}
+
+function getBonusImage(bonus, index){
+  bonus = bonus || {};
+  const image = bonus.cover_image || bonus.image || bonus.mockup_image || bonus.asset_image;
+  if(usableImage(image)) return image;
+  return buildCoverSvg({ title: bonus.title || ('Bonus ' + ((index || 0) + 1)), subtitle: bonus.tagline || bonus.type || 'Exclusive Buyer Bonus', badge: bonus.type || ('BONUS ' + ((index || 0) + 1)), number: bonus.number || ((index || 0) + 1), color: ['#1e3a8a','#2563eb','#6d28d9'][index || 0] || '#1e3a8a' });
+}
+
+function getLeadImage(content){
+  const lead = content.lead || {};
+  const image = lead.cover_image || lead.image || lead.mockup_image || lead.asset_image;
+  if(usableImage(image)) return image;
+  return buildCoverSvg({ title: lead.title || 'Free Blueprint', subtitle: lead.subtitle || lead.description || 'Lead Magnet Resource', badge: 'FREE GUIDE', number: '', color: '#047857' });
+}
+
+function getStackImage(content){
+  const stack = content.stack || {};
+  const image = stack.stack_image || stack.image || stack.bonus_stack_image || stack.mockup_image;
+  if(usableImage(image)) return image;
+  return buildStackSvg(content.bonuses || []);
+}
+
+function buildCoverSvg(asset){
+  const titleLines = wrapSvgText(asset.title, 18, 4);
+  const subLines = wrapSvgText(asset.subtitle, 28, 3);
+  const titleSvg = titleLines.map(function(line,i){ return '<text x="540" y="'+(390+i*54)+'" text-anchor="middle" font-family="Arial" font-size="42" font-weight="900" fill="#ffffff">'+xml(line)+'</text>'; }).join('');
+  const subSvg = subLines.map(function(line,i){ return '<text x="540" y="'+(650+i*31)+'" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#dbeafe">'+xml(line)+'</text>'; }).join('');
+  const number = asset.number ? '<circle cx="340" cy="255" r="38" fill="#f8c75a"/><text x="340" y="268" text-anchor="middle" font-family="Arial" font-size="32" font-weight="900" fill="#101325">'+xml(asset.number)+'</text>' : '';
+  return svgData('<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><defs><radialGradient id="g" cx="50%" cy="35%" r="65%"><stop offset="0" stop-color="'+asset.color+'" stop-opacity=".7"/><stop offset="1" stop-color="#050816"/></radialGradient><filter id="s"><feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000" flood-opacity=".55"/></filter></defs><rect width="1080" height="1080" fill="#050816"/><rect width="1080" height="1080" fill="url(#g)"/><ellipse cx="540" cy="875" rx="340" ry="62" fill="#000" opacity=".42"/><g filter="url(#s)"><rect x="285" y="130" width="510" height="730" rx="34" fill="'+asset.color+'"/><rect x="330" y="205" width="420" height="575" rx="24" fill="none" stroke="#f8c75a" stroke-width="7"/><text x="540" y="290" text-anchor="middle" font-family="Arial" font-size="20" font-weight="900" fill="#f8c75a" letter-spacing="3">'+xml(asset.badge)+'</text>'+number+titleSvg+'<rect x="365" y="605" width="350" height="108" rx="18" fill="#000" opacity=".18"/>'+subSvg+'</g></svg>');
+}
+
+function buildStackSvg(bonuses){
+  let items = (bonuses || []).slice(0, 3);
+  if(!items.length) items = [{title:'Bonus 1',description:'Buyer resource'},{title:'Bonus 2',description:'Buyer resource'},{title:'Bonus 3',description:'Buyer resource'}];
+  const cards = items.map(function(b,i){
+    const x = [120, 385, 650][i];
+    const colors = ['#1e3a8a','#2563eb','#6d28d9'];
+    const title = wrapSvgText(b.title || ('Bonus '+(i+1)), 14, 3).map(function(line,n){ return '<text x="'+(x+105)+'" y="'+(320+n*28)+'" text-anchor="middle" font-family="Arial" font-size="22" font-weight="900" fill="#fff">'+xml(line)+'</text>'; }).join('');
+    const desc = wrapSvgText(b.description || b.tagline || '', 30, 3).map(function(line,n){ return '<text x="'+(x+105)+'" y="'+(642+n*22)+'" text-anchor="middle" font-family="Arial" font-size="16" font-weight="700" fill="#dbeafe">'+xml(line)+'</text>'; }).join('');
+    return '<g><g transform="rotate('+([-6,0,6][i])+' '+(x+105)+' 430)"><rect x="'+x+'" y="215" width="210" height="310" rx="18" fill="'+colors[i]+'" filter="url(#s)"/><rect x="'+(x+18)+'" y="240" width="174" height="258" rx="10" fill="none" stroke="#f8c75a" stroke-width="5"/><text x="'+(x+105)+'" y="282" text-anchor="middle" font-family="Arial" font-size="15" font-weight="900" fill="#f8c75a">BONUS '+(i+1)+'</text>'+title+'</g><rect x="'+(x-20)+'" y="585" width="250" height="110" rx="16" fill="#0f172a" stroke="#f8c75a" stroke-opacity=".55"/>'+desc+'</g>';
+  }).join('');
+  return svgData('<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900"><defs><radialGradient id="g" cx="50%" cy="32%" r="70%"><stop offset="0" stop-color="#1e3a8a" stop-opacity=".62"/><stop offset="1" stop-color="#07111f"/></radialGradient><filter id="s"><feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000" flood-opacity=".55"/></filter></defs><rect width="1400" height="900" fill="url(#g)"/><ellipse cx="650" cy="560" rx="520" ry="70" fill="#000" opacity=".35"/><text x="650" y="105" text-anchor="middle" font-family="Arial" font-size="50" font-weight="900" fill="#f8c75a">EXCLUSIVE BONUS PACKAGE</text><text x="650" y="150" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#dbeafe">Three buyer-only resources that make the main offer easier to use</text><g transform="translate(120 0)">'+cards+'</g></svg>');
+}
+
+function wrapSvgText(text, maxChars, maxLines){
+  const words = String(text || '').replace(/\s+/g,' ').trim().split(' ');
+  const lines = [];
+  let line = '';
+  words.forEach(function(word){
+    if(lines.length >= maxLines) return;
+    const next = line ? line + ' ' + word : word;
+    if(next.length > maxChars && line){ lines.push(line); line = word; }
+    else { line = next; }
+  });
+  if(line && lines.length < maxLines) lines.push(line);
+  return lines.length ? lines : ['PromoLab'];
+}
+
+function svgData(svg){
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+function xml(value){
+  return String(value || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 async function logout(){
