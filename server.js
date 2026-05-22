@@ -100,6 +100,7 @@ async function getUserAccess(userId) {
   const { data } = await adminClient.from('promolab_access').select('*').eq('user_id', userId).single();
   return data || {
     solo_ads: false,
+    solo_ad_iq: false,
     facebook: false,
     email_sequence: false,
     launchjacking: false,
@@ -1134,13 +1135,14 @@ app.post('/api/admin/access', async (req, res) => {
   if (!user) return;
   const access = await getUserAccess(user.id);
   if (!access.is_admin) return res.status(403).json({ success: false, message: 'Admin only' });
-  const { target_email, solo_ads, facebook, email_sequence, launchjacking, affiliate_launch_guide, plan_name, monthly_generation_limit } = req.body;
+  const { target_email, solo_ads, solo_ad_iq, facebook, email_sequence, launchjacking, affiliate_launch_guide, plan_name, monthly_generation_limit } = req.body;
   const { data: users } = await adminClient.auth.admin.listUsers();
   const found = (users.users || []).find((u) => u.email === target_email);
   if (!found) return res.status(404).json({ success: false, message: 'User not found' });
   const { error } = await adminClient.from('promolab_access').upsert({
     user_id: found.id,
     solo_ads: !!solo_ads,
+    solo_ad_iq: !!solo_ad_iq,
     facebook: !!facebook,
     email_sequence: !!email_sequence,
     launchjacking: !!launchjacking,
