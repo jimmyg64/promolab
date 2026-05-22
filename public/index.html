@@ -98,3 +98,276 @@
 
     .hero-copy {
       padding: 42px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .eyebrow {
+      color: var(--accent-dark);
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(38px, 6vw, 66px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .hero-copy p {
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.55;
+      max-width: 620px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      border-radius: 8px;
+      padding: 0 20px;
+      border: 1px solid var(--line);
+      font-weight: 900;
+      color: var(--accent-dark);
+      background: #fff;
+    }
+
+    .button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .hero-visual {
+      background:
+        linear-gradient(rgba(8,13,36,0.12), rgba(8,13,36,0.45)),
+        url("https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1100&q=80");
+      background-size: cover;
+      background-position: center;
+      min-height: 300px;
+    }
+
+    .section-title {
+      margin: 38px 0 16px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .section-title p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .tool-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 24px;
+      min-height: 230px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 26px rgba(18, 24, 54, 0.06);
+    }
+
+    .tool-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .tool-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+      background: var(--soft);
+      color: var(--accent-dark);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      font-size: 22px;
+    }
+
+    .status {
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status.live {
+      background: var(--green);
+      color: var(--green-text);
+    }
+
+    .status.soon {
+      background: var(--orange);
+      color: var(--orange-text);
+    }
+
+    .tool-card h3 {
+      margin: 0 0 10px;
+      font-size: 23px;
+    }
+
+    .tool-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 16px;
+    }
+
+    .tool-card .button {
+      margin-top: auto;
+      align-self: flex-start;
+    }
+
+    .footer {
+      text-align: center;
+      color: #9097ad;
+      padding-top: 34px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 850px) {
+      .topbar {
+        padding: 18px 20px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy {
+        padding: 30px 24px;
+      }
+
+      .hero-visual {
+        min-height: 210px;
+      }
+
+      .section-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Promo<span>Lab</span> AI</a>
+    <nav class="nav" aria-label="Main navigation">
+      <a href="/login.html">Login</a>
+      <a class="primary" href="/signup.html">Create Account</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Affiliate promotion tools</div>
+        <h1>PromoLab AI</h1>
+        <p>Turn affiliate offers into ready-to-use promotional assets for the traffic platform you are working on today.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="/app.html">Open Solo Ads Builder</a>
+          <a class="button" href="/login.html">Member Login</a>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="Marketing team working on content"></div>
+    </section>
+
+    <section class="section-title">
+      <div>
+        <h2>Content Builders</h2>
+      </div>
+      <p>Start with Solo Ads now. More platform-specific builders can be added here as you expand PromoLab AI.</p>
+    </section>
+
+    <section class="grid" aria-label="PromoLab AI content builders">
+      <article class="tool-card">
+        <div class="tool-top">
+          <div class="tool-icon">SA</div>
+          <span class="status live">Live</span>
+        </div>
+        <h3>Solo Ads Funnel Builder</h3>
+        <p>Create offer analysis, buyer bonuses, lead magnet assets, opt-in copy, bridge-page copy, email follow-up, and downloadable promo materials.</p>
+        <a class="button primary" href="/app.html">Open Builder</a>
+      </article>
+
+      <article class="tool-card">
+        <div class="tool-top">
+          <div class="tool-icon">FB</div>
+          <span class="status soon">Coming Soon</span>
+        </div>
+        <h3>Facebook Content Builder</h3>
+        <p>Create post angles, ad copy, group content, lead magnet positioning, and follow-up ideas for Facebook traffic.</p>
+        <a class="button" href="/login.html">Join Waitlist</a>
+      </article>
+
+      <article class="tool-card">
+        <div class="tool-top">
+          <div class="tool-icon">YT</div>
+          <span class="status soon">Coming Soon</span>
+        </div>
+        <h3>YouTube Content Builder</h3>
+        <p>Create video hooks, outlines, titles, descriptions, lead magnet mentions, and follow-up content for YouTube campaigns.</p>
+        <a class="button" href="/login.html">Join Waitlist</a>
+      </article>
+
+      <article class="tool-card">
+        <div class="tool-top">
+          <div class="tool-icon">X</div>
+          <span class="status soon">Coming Soon</span>
+        </div>
+        <h3>X / Twitter Content Builder</h3>
+        <p>Create short-form angles, thread outlines, daily post ideas, offer hooks, and bridge content for fast-moving social traffic.</p>
+        <a class="button" href="/login.html">Join Waitlist</a>
+      </article>
+    </section>
+
+    <div class="footer">PromoLab AI by Jimmy Griffith, JGAffiliate</div>
+  </main>
+</body>
+</html>
