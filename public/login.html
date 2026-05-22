@@ -3,60 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Log in — PromoLab</title>
+<title>Log In - PromoLab AI</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#F0F0F8;color:#1A1A2E;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.card{background:#fff;border-radius:12px;padding:40px;max-width:420px;width:100%;box-shadow:0 2px 12px rgba(0,0,0,0.07)}
-.eyebrow{font-size:11px;color:#4F46B8;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;margin-bottom:8px}
-h1{font-size:22px;font-weight:700;margin-bottom:24px}
-label{font-size:13px;color:#555;display:block;margin-bottom:4px;font-weight:700}
-input{width:100%;padding:10px 14px;border:1px solid #D0CFEE;border-radius:7px;font-size:14px;margin-bottom:14px;font-family:Arial,sans-serif}
-input:focus{outline:none;border-color:#4F46B8}
-.btn{width:100%;background:#4F46B8;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
-.btn:hover{background:#3C3489}
-.alert{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:14px;font-weight:700;display:none}
-.alert-error{background:#FCEBEB;color:#7A1010}
-.alert-success{background:#EAF3DE;color:#1D6A3A}
-.footer{text-align:center;margin-top:20px;font-size:13px;color:#888}
-.footer a{color:#4F46B8;text-decoration:none;font-weight:700}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1fb;color:#080d24;min-height:100vh;display:grid;place-items:center;padding:24px}
+.card{background:#fff;border:1px solid #dfe3f4;border-radius:10px;box-shadow:0 18px 45px rgba(18,24,54,.12);max-width:430px;width:100%;padding:34px}
+.brand{font-size:25px;font-weight:900;margin-bottom:20px}.brand span{color:#887cff}
+h1{margin:0 0 8px;font-size:27px}
+.sub{margin:0 0 24px;color:#5f6880;line-height:1.5}
+label{display:block;font-size:13px;font-weight:900;color:#40465c;margin:14px 0 6px}
+input{width:100%;border:1px solid #d9dcef;border-radius:8px;padding:12px 13px;font-size:15px}
+input:focus{outline:none;border-color:#5146c6}
+button{font-family:inherit}
+.btn{width:100%;border:0;border-radius:8px;background:#5146c6;color:#fff;padding:13px 16px;font-size:15px;font-weight:900;cursor:pointer;margin-top:18px}
+.btn:hover{background:#3f36a2}
+.alert{padding:12px 14px;border-radius:8px;font-size:13px;font-weight:800;margin-bottom:16px;display:none}.error{background:#fee2e2;color:#7f1d1d}.ok{background:#dcfce7;color:#166534}
+.footer{text-align:center;margin-top:20px;color:#6b7280;font-size:14px}.footer a{color:#352c99;font-weight:900;text-decoration:none}
 </style>
 </head>
 <body>
-<div class="card">
-  <p class="eyebrow">PromoLab</p>
-  <h1>Log in to your account</h1>
+<main class="card">
+  <div class="brand">Promo<span>Lab</span> AI</div>
+  <h1>Log in</h1>
+  <p class="sub">Access your PromoLab AI dashboard and saved content projects.</p>
   <div id="alert" class="alert"></div>
   <label>Email address</label>
   <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
   <label>Password</label>
   <input type="password" id="password" placeholder="Your password" autocomplete="current-password">
-  <button class="btn" onclick="login()">Log in</button>
+  <button class="btn" onclick="login()">Log In</button>
   <div class="footer">
-    <p>Don't have an account? <a href="/signup.html">Sign up</a></p>
-    <p style="margin-top:8px"><a href="/">Back to home</a></p>
+    <p>Need an account? <a href="/signup.html">Create one</a></p>
+    <p><a href="/">Back to homepage</a></p>
   </div>
-</div>
+</main>
+
 <script>
 async function login(){
-  var email=document.getElementById('email').value.trim();
-  var password=document.getElementById('password').value;
-  var alert=document.getElementById('alert');
-  if(!email||!password){showAlert('Please enter your email and password.','error');return;}
+  var email = document.getElementById('email').value.trim();
+  var password = document.getElementById('password').value;
+  if(!email || !password){ showAlert('Please enter your email and password.', 'error'); return; }
   try{
-    var res=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-    var data=await res.json();
-    if(data.success){window.location.href='/app.html';}
-    else{showAlert(data.message||'Login failed','error');}
-  }catch(e){showAlert('Network error. Please try again.','error');}
+    var res = await fetch('/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: email, password: password })
+    });
+    var data = await res.json();
+    if(data.success){ location.href = '/dashboard.html'; return; }
+    showAlert(data.message || 'Login failed.', 'error');
+  }catch(e){
+    showAlert('Network error. Please try again.', 'error');
+  }
 }
+
 function showAlert(msg,type){
-  var el=document.getElementById('alert');
-  el.textContent=msg;
-  el.className='alert alert-'+type;
-  el.style.display='block';
+  var el = document.getElementById('alert');
+  el.textContent = msg;
+  el.className = 'alert ' + (type || 'error');
+  el.style.display = 'block';
 }
-document.addEventListener('keydown',function(e){if(e.key==='Enter')login();});
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Enter') login();
+});
 </script>
 </body>
 </html>
