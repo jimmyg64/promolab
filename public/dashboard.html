@@ -6,103 +6,138 @@
 <title>Dashboard - PromoLab AI</title>
 <style>
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1fb;color:#080d24}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f5fb;color:#080d24}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit}
-.top{min-height:68px;background:#080d24;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 30px;gap:16px}
-.brand{font-size:24px;font-weight:900}.brand span{color:#887cff}
-.user{display:flex;align-items:center;gap:12px;color:#d7dbef;font-size:14px;flex-wrap:wrap;justify-content:flex-end}
-.btn{border:0;border-radius:8px;background:#5146c6;color:#fff;padding:12px 16px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:44px}
+.shell{min-height:100vh;display:grid;grid-template-columns:260px 1fr}
+.side{background:#080d24;color:#fff;padding:22px 16px;display:flex;flex-direction:column;gap:20px;position:sticky;top:0;height:100vh}
+.brand{font-size:25px;font-weight:900;padding:4px 8px}.brand span{color:#887cff}
+.nav{display:flex;flex-direction:column;gap:7px}
+.nav a,.nav button{width:100%;border:0;background:transparent;color:#cfd5ee;text-align:left;border-radius:8px;padding:12px 12px;font-size:14px;font-weight:900;cursor:pointer}
+.nav a.active,.nav button:hover,.nav a:hover{background:#171b34;color:#fff}
+.side-foot{margin-top:auto;color:#8f96b5;font-size:12px;line-height:1.5;padding:8px}
+.main{min-width:0}
+.top{height:68px;background:#fff;border-bottom:1px solid #dfe3f4;display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:16px}
+.top h1{margin:0;font-size:24px}
+.user{display:flex;align-items:center;gap:12px;color:#5f6880;font-size:14px;flex-wrap:wrap;justify-content:flex-end}
+.content{max-width:1240px;margin:0 auto;padding:26px}
+.btn{border:0;border-radius:8px;background:#5146c6;color:#fff;padding:11px 15px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:42px;font-size:14px}
 .btn:hover{background:#3f36a2}.btn.secondary{background:#fff;color:#352c99;border:1px solid #dfe3f4}.btn.light{background:#eef0ff;color:#352c99}.btn.danger{background:#b91c1c}
-.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 54px}
-.hero{background:#fff;border:1px solid #dfe3f4;border-radius:10px;padding:28px;box-shadow:0 12px 32px rgba(18,24,54,.08)}
-.hero h1{margin:0 0 8px;font-size:34px;letter-spacing:0}
-.hero p{margin:0;color:#5f6880;font-size:16px;line-height:1.5;max-width:850px}
-.usage{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
-.metric{background:#f8f8ff;border:1px solid #e2e5f6;border-radius:8px;padding:14px}
+.hero{background:#fff;border:1px solid #dfe3f4;border-radius:8px;padding:24px;box-shadow:0 8px 24px rgba(18,24,54,.06);display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.hero h2{margin:0 0 8px;font-size:30px}.hero p{margin:0;color:#5f6880;font-size:16px;line-height:1.5;max-width:820px}
+.usage{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.metric{background:#fff;border:1px solid #dfe3f4;border-radius:8px;padding:14px;box-shadow:0 8px 20px rgba(18,24,54,.04)}
 .metric-label{font-size:12px;color:#6b7280;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.metric-value{font-size:24px;font-weight:900;color:#1f2370;margin-top:5px}
-.section-title{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:30px 0 14px}
-.section-title h2{margin:0;font-size:24px}.section-title p{margin:0;color:#6b7280;line-height:1.45}
-.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.card{background:#fff;border:1px solid #dfe3f4;border-radius:8px;padding:20px;box-shadow:0 8px 24px rgba(18,24,54,.06)}
-.tool{min-height:220px;display:flex;flex-direction:column}
-.tool-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-.icon{width:44px;height:44px;border-radius:8px;background:#eef0ff;color:#352c99;display:grid;place-items:center;font-weight:900}
-.status{border-radius:999px;padding:7px 11px;font-size:12px;font-weight:900}.live{background:#dcfce7;color:#166534}.soon{background:#fff0dc;color:#8c4b00}
-.tool h3{margin:0 0 8px;font-size:21px}.tool p{margin:0;color:#5f6880;line-height:1.5}.tool .actions{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap}
-.projects{display:grid;gap:12px}
-.project{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}
-.project h3{margin:0 0 6px;font-size:18px}.meta{color:#6b7280;font-size:13px;line-height:1.5}.badge{display:inline-block;margin-top:8px;border-radius:999px;background:#eef0ff;color:#3730a3;padding:6px 10px;font-size:12px;font-weight:900}
+.section{margin-top:26px}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:13px}
+.section-head h2{margin:0;font-size:22px}.section-head p{margin:0;color:#6b7280;line-height:1.45}
+.modules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.module{background:#fff;border:1px solid #dfe3f4;border-radius:8px;padding:18px;min-height:210px;display:flex;flex-direction:column;box-shadow:0 8px 20px rgba(18,24,54,.04)}
+.module-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.icon{width:42px;height:42px;border-radius:8px;background:#eef0ff;color:#352c99;display:grid;place-items:center;font-weight:900}
+.status{border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900;white-space:nowrap}.live{background:#dcfce7;color:#166534}.soon{background:#fff0dc;color:#8c4b00}
+.module h3{margin:0 0 8px;font-size:18px}.module p{margin:0;color:#5f6880;line-height:1.45;font-size:14px}.module .actions{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+.projects{display:grid;gap:10px}
+.project{background:#fff;border:1px solid #dfe3f4;border-radius:8px;padding:16px;display:grid;grid-template-columns:minmax(220px,1fr) 170px 170px 320px;gap:14px;align-items:center;box-shadow:0 8px 20px rgba(18,24,54,.04)}
+.project h3{margin:0 0 6px;font-size:17px}.meta{color:#6b7280;font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+.label{font-size:11px;color:#6b7280;font-weight:900;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.badge{display:inline-block;border-radius:999px;background:#eef0ff;color:#3730a3;padding:6px 10px;font-size:12px;font-weight:900;line-height:1.2}
+.project-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .empty{background:#fff;border:1px dashed #cfd5ee;border-radius:8px;padding:28px;text-align:center;color:#6b7280}
 .alert{padding:13px 15px;border-radius:8px;font-weight:800;margin-top:14px}.error{background:#fee2e2;color:#7f1d1d}.ok{background:#dcfce7;color:#166534}.info{background:#eef0ff;color:#3730a3}
 .footer{text-align:center;color:#9097ad;padding:32px 0 0;font-size:13px}
-@media(max-width:850px){.top{padding:16px 18px;align-items:flex-start;flex-direction:column}.user{justify-content:flex-start}.usage,.tools{grid-template-columns:1fr}.project{grid-template-columns:1fr}.wrap{padding:18px 14px 44px}.hero h1{font-size:28px}}
+.mobile-menu{display:none}
+@media(max-width:1100px){.modules{grid-template-columns:repeat(2,1fr)}.project{grid-template-columns:1fr 1fr}.project-actions{justify-content:flex-start}.usage{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.shell{grid-template-columns:1fr}.side{position:static;height:auto}.mobile-menu{display:block}.top{padding:14px 18px;height:auto;align-items:flex-start;flex-direction:column}.content{padding:18px 14px}.hero{grid-template-columns:1fr}.modules,.usage,.project{grid-template-columns:1fr}.project-actions{justify-content:flex-start}}
 </style>
 </head>
 <body>
-<header class="top">
-  <a class="brand" href="/dashboard.html">Promo<span>Lab</span> AI</a>
-  <div class="user">
-    <span id="user-email">Loading...</span>
-    <a class="btn secondary" href="/admin.html" id="admin-link" style="display:none">Admin</a>
-    <button class="btn secondary" onclick="logout()">Logout</button>
-  </div>
-</header>
+<div class="shell">
+  <aside class="side">
+    <a class="brand" href="/dashboard.html">Promo<span>Lab</span> AI</a>
+    <nav class="nav">
+      <a class="active" href="/dashboard.html">Dashboard</a>
+      <a href="/app.html">Solo Ads Builder</a>
+      <button onclick="soon()">Facebook Builder</button>
+      <button onclick="soon()">YouTube Builder</button>
+      <button onclick="soon()">X / Twitter Builder</button>
+      <a href="/admin.html" id="admin-link-side" style="display:none">Admin</a>
+    </nav>
+    <div class="side-foot">
+      <strong>PromoLab AI</strong><br>
+      Platform-specific affiliate promotion tools.
+    </div>
+  </aside>
 
-<main class="wrap">
-  <section class="hero">
-    <h1>Dashboard</h1>
-    <p>Choose a content builder, continue a saved project, or start a new funnel build.</p>
-    <div id="usage-box" class="usage"></div>
-    <div id="status"></div>
-  </section>
+  <main class="main">
+    <header class="top">
+      <h1>Dashboard</h1>
+      <div class="user">
+        <span id="user-email">Loading...</span>
+        <a class="btn secondary" href="/admin.html" id="admin-link" style="display:none">Admin</a>
+        <button class="btn secondary" onclick="logout()">Logout</button>
+      </div>
+    </header>
 
-  <section class="section-title">
-    <div><h2>Content Builders</h2></div>
-    <p>Each builder will focus on one traffic platform at a time.</p>
-  </section>
+    <div class="content">
+      <section class="hero">
+        <div>
+          <h2>Build Affiliate Promo Assets</h2>
+          <p>Start a platform-specific builder, continue a saved project, or download finished assets from your project history.</p>
+        </div>
+        <a class="btn" href="/app.html">Start Solo Ads Project</a>
+      </section>
 
-  <section class="tools">
-    <article class="card tool">
-      <div class="tool-head"><div class="icon">SA</div><span class="status live">Live</span></div>
-      <h3>Solo Ads Funnel Builder</h3>
-      <p>Create buyer bonuses, lead magnet assets, opt-in copy, bridge-page assets, email follow-up, and promo materials.</p>
-      <div class="actions"><a class="btn" href="/app.html">Start New Solo Ads Project</a></div>
-    </article>
+      <div id="usage-box" class="usage"></div>
+      <div id="status"></div>
 
-    <article class="card tool">
-      <div class="tool-head"><div class="icon">FB</div><span class="status soon">Coming Soon</span></div>
-      <h3>Facebook Content Builder</h3>
-      <p>Create posts, ad angles, group content, short lead magnet mentions, and follow-up ideas.</p>
-      <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
-    </article>
+      <section class="section">
+        <div class="section-head">
+          <div><h2>Content Builders</h2></div>
+          <p>One workflow per traffic platform.</p>
+        </div>
+        <div class="modules">
+          <article class="module">
+            <div class="module-top"><div class="icon">SA</div><span class="status live">Live</span></div>
+            <h3>Solo Ads Funnel Builder</h3>
+            <p>Buyer bonuses, lead magnet, opt-in, bridge page, emails, and promo assets.</p>
+            <div class="actions"><a class="btn" href="/app.html">Open</a></div>
+          </article>
+          <article class="module">
+            <div class="module-top"><div class="icon">FB</div><span class="status soon">Coming Soon</span></div>
+            <h3>Facebook Content Builder</h3>
+            <p>Posts, ad angles, group content, lead magnet hooks, and follow-up ideas.</p>
+            <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
+          </article>
+          <article class="module">
+            <div class="module-top"><div class="icon">YT</div><span class="status soon">Coming Soon</span></div>
+            <h3>YouTube Content Builder</h3>
+            <p>Video hooks, outlines, titles, descriptions, and audience-specific angles.</p>
+            <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
+          </article>
+          <article class="module">
+            <div class="module-top"><div class="icon">X</div><span class="status soon">Coming Soon</span></div>
+            <h3>X / Twitter Content Builder</h3>
+            <p>Short posts, thread outlines, offer hooks, and daily content angles.</p>
+            <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
+          </article>
+        </div>
+      </section>
 
-    <article class="card tool">
-      <div class="tool-head"><div class="icon">YT</div><span class="status soon">Coming Soon</span></div>
-      <h3>YouTube Content Builder</h3>
-      <p>Create video hooks, outlines, titles, descriptions, lead magnet mentions, and related content.</p>
-      <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
-    </article>
+      <section class="section">
+        <div class="section-head">
+          <div><h2>Project History</h2></div>
+          <p>Open saved projects or download ready assets.</p>
+        </div>
+        <section id="projects" class="projects">
+          <div class="empty">Loading projects...</div>
+        </section>
+      </section>
 
-    <article class="card tool">
-      <div class="tool-head"><div class="icon">X</div><span class="status soon">Coming Soon</span></div>
-      <h3>X / Twitter Content Builder</h3>
-      <p>Create short posts, thread outlines, daily angles, offer hooks, and bridge content ideas.</p>
-      <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
-    </article>
-  </section>
-
-  <section class="section-title">
-    <div><h2>Project History</h2></div>
-    <p>Open a previous Solo Ads project to review or download assets again.</p>
-  </section>
-
-  <section id="projects" class="projects">
-    <div class="empty">Loading projects...</div>
-  </section>
-
-  <div class="footer">PromoLab AI by Jimmy Griffith, JGAffiliate</div>
-</main>
+      <div class="footer">PromoLab AI by Jimmy Griffith, JGAffiliate</div>
+    </div>
+  </main>
+</div>
 
 <script>
 async function init(){
@@ -116,7 +151,10 @@ async function me(){
   const data = await res.json();
   if(!data.success){ location.href='/login.html'; return; }
   document.getElementById('user-email').textContent = data.user.email;
-  if(data.access && data.access.is_admin) document.getElementById('admin-link').style.display = 'inline-flex';
+  if(data.access && data.access.is_admin) {
+    document.getElementById('admin-link').style.display = 'inline-flex';
+    document.getElementById('admin-link-side').style.display = 'block';
+  }
 }
 
 async function loadUsage(){
@@ -148,16 +186,17 @@ async function loadProjects(){
     el.innerHTML = projects.map(function(p){
       const created = p.created_at ? new Date(p.created_at).toLocaleDateString() : '';
       const updated = p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '';
-      return '<article class="card project">'+
+      return '<article class="project">'+
         '<div>'+
+          '<div class="label">Project</div>'+
           '<h3>'+esc(p.name || 'Solo Ads Project')+'</h3>'+
           '<div class="meta">'+esc(p.url || 'No URL saved')+'</div>'+
-          '<div class="meta">Created '+esc(created)+' - Updated '+esc(updated)+'</div>'+
-          '<span class="badge">'+esc(p.angle || 'Solo Ads')+'</span>'+
         '</div>'+
-        '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'+
-          '<a class="btn" href="/app.html?project='+encodeURIComponent(p.id)+'">Open Project</a>'+
-          '<button class="btn light" onclick="event.preventDefault();downloadProjectAssets(\''+escAttr(p.id)+'\')">Quick Downloads</button>'+
+        '<div><div class="label">Updated</div><div class="meta">Created '+esc(created)+'<br>Updated '+esc(updated)+'</div></div>'+
+        '<div><div class="label">Angle</div><span class="badge">'+esc(p.angle || 'Solo Ads')+'</span></div>'+
+        '<div class="project-actions">'+
+          '<a class="btn" href="/app.html?project='+encodeURIComponent(p.id)+'">Open</a>'+
+          '<button class="btn light" onclick="event.preventDefault();downloadProjectAssets(\''+escAttr(p.id)+'\')">Downloads</button>'+
           '<button class="btn danger" onclick="deleteProject(\''+escAttr(p.id)+'\')">Delete</button>'+
         '</div>'+
       '</article>';
@@ -390,6 +429,10 @@ async function logout(){
 
 function metric(label,value){
   return '<div class="metric"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+esc(value)+'</div></div>';
+}
+
+function safeName(value){
+  return String(value || 'PromoLab').replace(/[^a-z0-9_.-]/gi, '_').slice(0, 80);
 }
 
 function formatNum(n){ return Number(n || 0).toLocaleString(); }
