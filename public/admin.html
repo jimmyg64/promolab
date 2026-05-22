@@ -80,6 +80,7 @@ function renderUsers(){
       <td><div class="email">${esc(u.email)}</div><div class="muted">${esc(u.id)}</div></td>
       <td><div class="checks">
         ${checkbox(u.id,'solo_ads',a.solo_ads,'Solo Ads')}
+        ${checkbox(u.id,'solo_ad_iq',a.solo_ad_iq,'Solo Ad IQ')}
         ${checkbox(u.id,'facebook',a.facebook,'Facebook')}
         ${checkbox(u.id,'email_sequence',a.email_sequence,'Email')}
         ${checkbox(u.id,'launchjacking',a.launchjacking,'Launchjacking')}
@@ -108,6 +109,7 @@ async function saveUser(email,id){
     var body = {
       target_email: email,
       solo_ads: checked('solo_ads_'+id),
+      solo_ad_iq: checked('solo_ad_iq_'+id),
       facebook: checked('facebook_'+id),
       email_sequence: checked('email_sequence_'+id),
       launchjacking: checked('launchjacking_'+id),
