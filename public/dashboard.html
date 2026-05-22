@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - PromoLab AI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef1fb;color:#080d24}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+.top{min-height:68px;background:#080d24;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 30px;gap:16px}
+.brand{font-size:24px;font-weight:900}.brand span{color:#887cff}
+.user{display:flex;align-items:center;gap:12px;color:#d7dbef;font-size:14px;flex-wrap:wrap;justify-content:flex-end}
+.btn{border:0;border-radius:8px;background:#5146c6;color:#fff;padding:12px 16px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:44px}
+.btn:hover{background:#3f36a2}.btn.secondary{background:#fff;color:#352c99;border:1px solid #dfe3f4}.btn.light{background:#eef0ff;color:#352c99}.btn.danger{background:#b91c1c}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 54px}
+.hero{background:#fff;border:1px solid #dfe3f4;border-radius:10px;padding:28px;box-shadow:0 12px 32px rgba(18,24,54,.08)}
+.hero h1{margin:0 0 8px;font-size:34px;letter-spacing:0}
+.hero p{margin:0;color:#5f6880;font-size:16px;line-height:1.5;max-width:850px}
+.usage{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
+.metric{background:#f8f8ff;border:1px solid #e2e5f6;border-radius:8px;padding:14px}
+.metric-label{font-size:12px;color:#6b7280;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.metric-value{font-size:24px;font-weight:900;color:#1f2370;margin-top:5px}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:30px 0 14px}
+.section-title h2{margin:0;font-size:24px}.section-title p{margin:0;color:#6b7280;line-height:1.45}
+.tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{background:#fff;border:1px solid #dfe3f4;border-radius:8px;padding:20px;box-shadow:0 8px 24px rgba(18,24,54,.06)}
+.tool{min-height:220px;display:flex;flex-direction:column}
+.tool-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.icon{width:44px;height:44px;border-radius:8px;background:#eef0ff;color:#352c99;display:grid;place-items:center;font-weight:900}
+.status{border-radius:999px;padding:7px 11px;font-size:12px;font-weight:900}.live{background:#dcfce7;color:#166534}.soon{background:#fff0dc;color:#8c4b00}
+.tool h3{margin:0 0 8px;font-size:21px}.tool p{margin:0;color:#5f6880;line-height:1.5}.tool .actions{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap}
+.projects{display:grid;gap:12px}
+.project{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}
+.project h3{margin:0 0 6px;font-size:18px}.meta{color:#6b7280;font-size:13px;line-height:1.5}.badge{display:inline-block;margin-top:8px;border-radius:999px;background:#eef0ff;color:#3730a3;padding:6px 10px;font-size:12px;font-weight:900}
+.empty{background:#fff;border:1px dashed #cfd5ee;border-radius:8px;padding:28px;text-align:center;color:#6b7280}
+.alert{padding:13px 15px;border-radius:8px;font-weight:800;margin-top:14px}.error{background:#fee2e2;color:#7f1d1d}.ok{background:#dcfce7;color:#166534}.info{background:#eef0ff;color:#3730a3}
+.footer{text-align:center;color:#9097ad;padding:32px 0 0;font-size:13px}
+@media(max-width:850px){.top{padding:16px 18px;align-items:flex-start;flex-direction:column}.user{justify-content:flex-start}.usage,.tools{grid-template-columns:1fr}.project{grid-template-columns:1fr}.wrap{padding:18px 14px 44px}.hero h1{font-size:28px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/dashboard.html">Promo<span>Lab</span> AI</a>
+  <div class="user">
+    <span id="user-email">Loading...</span>
+    <a class="btn secondary" href="/admin.html" id="admin-link" style="display:none">Admin</a>
+    <button class="btn secondary" onclick="logout()">Logout</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Dashboard</h1>
+    <p>Choose a content builder, continue a saved project, or start a new funnel build.</p>
+    <div id="usage-box" class="usage"></div>
+    <div id="status"></div>
+  </section>
+
+  <section class="section-title">
+    <div><h2>Content Builders</h2></div>
+    <p>Each builder will focus on one traffic platform at a time.</p>
+  </section>
+
+  <section class="tools">
+    <article class="card tool">
+      <div class="tool-head"><div class="icon">SA</div><span class="status live">Live</span></div>
+      <h3>Solo Ads Funnel Builder</h3>
+      <p>Create buyer bonuses, lead magnet assets, opt-in copy, bridge-page assets, email follow-up, and promo materials.</p>
+      <div class="actions"><a class="btn" href="/app.html">Start New Solo Ads Project</a></div>
+    </article>
+
+    <article class="card tool">
+      <div class="tool-head"><div class="icon">FB</div><span class="status soon">Coming Soon</span></div>
+      <h3>Facebook Content Builder</h3>
+      <p>Create posts, ad angles, group content, short lead magnet mentions, and follow-up ideas.</p>
+      <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
+    </article>
+
+    <article class="card tool">
+      <div class="tool-head"><div class="icon">YT</div><span class="status soon">Coming Soon</span></div>
+      <h3>YouTube Content Builder</h3>
+      <p>Create video hooks, outlines, titles, descriptions, lead magnet mentions, and related content.</p>
+      <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
+    </article>
+
+    <article class="card tool">
+      <div class="tool-head"><div class="icon">X</div><span class="status soon">Coming Soon</span></div>
+      <h3>X / Twitter Content Builder</h3>
+      <p>Create short posts, thread outlines, daily angles, offer hooks, and bridge content ideas.</p>
+      <div class="actions"><button class="btn light" onclick="soon()">Coming Soon</button></div>
+    </article>
+  </section>
+
+  <section class="section-title">
+    <div><h2>Project History</h2></div>
+    <p>Open a previous Solo Ads project to review or download assets again.</p>
+  </section>
+
+  <section id="projects" class="projects">
+    <div class="empty">Loading projects...</div>
+  </section>
+
+  <div class="footer">PromoLab AI by Jimmy Griffith, JGAffiliate</div>
+</main>
+
+<script>
+async function init(){
+  await me();
+  await loadUsage();
+  await loadProjects();
+}
+
+async function me(){
+  const res = await fetch('/me', { credentials:'include' });
+  const data = await res.json();
+  if(!data.success){ location.href='/login.html'; return; }
+  document.getElementById('user-email').textContent = data.user.email;
+  if(data.access && data.access.is_admin) document.getElementById('admin-link').style.display = 'inline-flex';
+}
+
+async function loadUsage(){
+  try{
+    const res = await fetch('/api/usage/me', { credentials:'include' });
+    const data = await res.json();
+    if(!data.success) return;
+    const s = data.summary || {};
+    const remaining = s.remaining === null || s.remaining === undefined ? 'unlimited' : s.remaining;
+    document.getElementById('usage-box').innerHTML =
+      metric('Plan', String(s.plan_name || 'solo_ads_basic').replace(/_/g,' ')) +
+      metric('Successful', s.success || 0) +
+      metric('Remaining', remaining) +
+      metric('Est. Tokens', formatNum((s.estimated_input_tokens || 0) + (s.estimated_output_tokens || 0)));
+  }catch(e){}
+}
+
+async function loadProjects(){
+  const el = document.getElementById('projects');
+  try{
+    const res = await fetch('/api/projects', { credentials:'include' });
+    const data = await res.json();
+    if(!data.success) throw new Error(data.message || 'Could not load projects');
+    const projects = data.projects || [];
+    if(!projects.length){
+      el.innerHTML = '<div class="empty">No saved projects yet. Start your first Solo Ads project above.</div>';
+      return;
+    }
+    el.innerHTML = projects.map(function(p){
+      const created = p.created_at ? new Date(p.created_at).toLocaleDateString() : '';
+      const updated = p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '';
+      return '<article class="card project">'+
+        '<div>'+
+          '<h3>'+esc(p.name || 'Solo Ads Project')+'</h3>'+
+          '<div class="meta">'+esc(p.url || 'No URL saved')+'</div>'+
+          '<div class="meta">Created '+esc(created)+' - Updated '+esc(updated)+'</div>'+
+          '<span class="badge">'+esc(p.angle || 'Solo Ads')+'</span>'+
+        '</div>'+
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'+
+          '<a class="btn" href="/app.html?project='+encodeURIComponent(p.id)+'">Open Project</a>'+
+          '<button class="btn danger" onclick="deleteProject(\''+escAttr(p.id)+'\')">Delete</button>'+
+        '</div>'+
+      '</article>';
+    }).join('');
+  }catch(e){
+    el.innerHTML = '<div class="alert error">Project history could not load. Please refresh and try again.</div>';
+  }
+}
+
+async function deleteProject(id){
+  if(!confirm('Delete this project? This cannot be undone.')) return;
+  const res = await fetch('/api/projects/' + encodeURIComponent(id), { method:'DELETE', credentials:'include' });
+  const data = await res.json().catch(function(){ return {}; });
+  if(!res.ok || !data.success){
+    showStatus(data.message || 'Delete failed.', 'error');
+    return;
+  }
+  showStatus('Project deleted.', 'ok');
+  loadProjects();
+}
+
+function soon(){
+  showStatus('This builder is coming next. Solo Ads is live now.', 'info');
+}
+
+function showStatus(msg,type){
+  document.getElementById('status').innerHTML = msg ? '<div class="alert '+(type || 'info')+'">'+esc(msg)+'</div>' : '';
+}
+
+async function logout(){
+  await fetch('/logout', { method:'POST', credentials:'include' });
+  location.href = '/login.html';
+}
+
+function metric(label,value){
+  return '<div class="metric"><div class="metric-label">'+esc(label)+'</div><div class="metric-value">'+esc(value)+'</div></div>';
+}
+
+function formatNum(n){ return Number(n || 0).toLocaleString(); }
+function esc(s){ const d=document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function escAttr(s){ return String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+init();
+</script>
+</body>
+</html>
