@@ -63,6 +63,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}.row{display:grid;grid
       <section class="panel">
         <h1>Solo Ads Funnel Builder</h1>
         <p class="sub">Turn any affiliate offer into a complete solo ad funnel with buyer bonuses, opt-in copy, bridge-page assets, email follow-up, and downloadable promo materials.</p>
+        <div id="project-mode-box" class="alert info">New project. Enter an offer URL below to begin.</div>
         <div id="usage-box"></div>
         <div id="status"></div>
       </section>
@@ -320,6 +321,11 @@ async function analyzeOffer(){
     state.project = data.project;
     state.analysis = data.analysis;
     state.angle = data.analysis.recommended_angle;
+    var modeBox = document.getElementById('project-mode-box');
+    if(modeBox){
+      modeBox.className = 'alert ok';
+      modeBox.innerHTML = 'Active project: <strong>' + esc((data.project && data.project.name) || data.analysis.product_name || 'Solo Ads Project') + '</strong>';
+    }
     renderAnalysis();
     go(1);
   }catch(e){ showStatus(e.message,'error'); }
@@ -606,6 +612,11 @@ async function loadProjectFromUrl(){
     var project = data.project || {};
     var content = data.content || {};
     state.project = project;
+    var modeBox = document.getElementById('project-mode-box');
+    if(modeBox){
+      modeBox.className = 'alert ok';
+      modeBox.innerHTML = 'Saved project loaded: <strong>' + esc(project.name || 'Solo Ads Project') + '</strong>';
+    }
     try { state.analysis = typeof project.analysis === 'string' ? JSON.parse(project.analysis || '{}') : project.analysis; }
     catch(e){ state.analysis = {}; }
     state.angle = project.angle || (state.analysis && state.analysis.recommended_angle) || '';
